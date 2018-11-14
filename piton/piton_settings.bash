@@ -125,3 +125,6 @@ fi
 
 # Set library path for the new goldfinger
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DV_ROOT/tools/src/goldfinger/lib
+
+export PITON_ROOT=/home/yo96/openpiton
+function vcs() { command vcs -full64 "$@"; }; export -f vcs
