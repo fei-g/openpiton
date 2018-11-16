@@ -1025,9 +1025,12 @@ module chip(
                #xbartemplate += "    .dataIn_%d (tile_%d_%d_out_noc1_data ),\n"  % (i, j,i)
                #xbartemplate += "    .validIn_%d(tile_%d_%d_out_noc1_valid),\n"  % (i, j,i)
                #xbartemplate += "    .yummyIn_%d(tile_%d_%d_out_noc1_yummy),\n"  % (i, j,i)
-               xbartemplate += "    .dataIn_%d ( tile%d_%d_noc1_from_trace_msg ),\n"  % (i,j,i)               
-               xbartemplate += "    .validIn_%d( tile%d_%d_noc1_from_trace_val ),\n"  % (i,j,i)
-               xbartemplate += "    .yummyIn_%d( tile%d_%d_noc1_from_trace_yum ),\n"  % (i,j,i)
+               #xbartemplate += "    .dataIn_%d ( tile%d_%d_noc1_from_trace_msg ),\n"  % (i,j,i)               
+               #xbartemplate += "    .validIn_%d( tile%d_%d_noc1_from_trace_val ),\n"  % (i,j,i)
+               #xbartemplate += "    .yummyIn_%d( tile%d_%d_noc1_from_trace_yum ),\n"  % (i,j,i)
+               xbartemplate += "    .dataIn_%d ( tile%d_%d_noc1_cr_msg ),\n"  % (i,j,i)
+               xbartemplate += "    .validIn_%d( tile%d_%d_noc1_cr_val ),\n"  % (i,j,i)
+               xbartemplate += "    .yummyIn_%d( tile%d_%d_noc1_cr_yum ),\n"  % (i,j,i)
                xbartemplate += "    .dataOut_%d(xbar_%d_out_noc1_data),\n"  % (i, i)
                xbartemplate += "    .validOut_%d(xbar_%d_out_noc1_valid),\n"  % (i, i)
                xbartemplate += "    .yummyOut_%d(xbar_%d_out_noc1_yummy),\n\n"  % (i, i)
@@ -1101,13 +1104,13 @@ module chip(
                xbartemplate += "  .clk      ( clk_muxed           ),\n"
                xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n" 
                xbartemplate += "  // credit based interface\n"
-               xbartemplate += "  .data_in  ( /*tile%d_%d_noc1_from_trace_msg*/ ),\n" % ( y, x ) 
-               xbartemplate += "  .valid_in ( /*tile%d_%d_noc1_from_trace_val*/ ),\n" % ( y, x )
-               xbartemplate += "  .yummy_in ( /*tile%d_%d_noc1_from_trace_yum*/ ),\n" % ( y, x )
+               xbartemplate += "  .data_in  ( tile%d_%d_noc1_from_trace_msg ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_in ( tile%d_%d_noc1_from_trace_val ),\n" % ( y, x )
+               xbartemplate += "  .yummy_in ( tile%d_%d_noc1_from_trace_yum ),\n" % ( y, x )
                xbartemplate += "  // val/rdy interface\n"
-               xbartemplate += "  .data_out ( /*tile%d_%d_noc1_vr_msg*/ ),\n" % ( y, x )  
-               xbartemplate += "  .valid_out( /*tile%d_%d_noc1_vr_val*/ ),\n" % ( y, x )
-               xbartemplate += "  .ready_out( /*tile%d_%d_noc1_vr_rdy*/ ) \n" % ( y, x )
+               xbartemplate += "  .data_out ( tile%d_%d_noc1_vr_msg ),\n" % ( y, x )  
+               xbartemplate += "  .valid_out( tile%d_%d_noc1_vr_val ),\n" % ( y, x )
+               xbartemplate += "  .ready_out( tile%d_%d_noc1_vr_rdy ) \n" % ( y, x )
                xbartemplate += "); \n\n"
 
                xbartemplate += "valrdy_to_credit #( \n"
@@ -1117,13 +1120,13 @@ module chip(
                xbartemplate += "  .clk      ( clk_muxed           ),\n"
                xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
                xbartemplate += "   // val/rdy interface\n"
-               xbartemplate += "  .data_in  ( /*tile%d_%d_noc1_vr_msg*/ ),\n" % ( y, x ) 
-               xbartemplate += "  .valid_in ( /*tile%d_%d_noc1_vr_val*/ ),\n" % ( y, x )
-               xbartemplate += "  .ready_in ( /*tile%d_%d_noc1_vr_rdy*/ ),\n" % ( y, x )
+               xbartemplate += "  .data_in  ( tile%d_%d_noc1_vr_msg ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_in ( tile%d_%d_noc1_vr_val ),\n" % ( y, x )
+               xbartemplate += "  .ready_in ( tile%d_%d_noc1_vr_rdy ),\n" % ( y, x )
                xbartemplate += "  // credit based interface\n"
-               xbartemplate += "  .data_out ( /*tile%d_%d_noc1_cr_msg*/ ),\n" % ( y, x ) 
-               xbartemplate += "  .valid_out( /*tile%d_%d_noc1_cr_val*/ ),\n" % ( y, x )
-               xbartemplate += "  .yummy_out( /*tile%d_%d_noc1_cr_yum*/ ) \n" % ( y, x )
+               xbartemplate += "  .data_out ( tile%d_%d_noc1_cr_msg ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_out( tile%d_%d_noc1_cr_val ),\n" % ( y, x )
+               xbartemplate += "  .yummy_out( tile%d_%d_noc1_cr_yum ) \n" % ( y, x )
                xbartemplate += "); \n\n"
         
        print xbartemplate
