@@ -365,11 +365,19 @@ module chip(
                    print "wire tile_%d_%d_out_noc%d_valid;" % (j,i,k)
                    print "wire tile_%d_%d_out_noc%d_yummy;" % (j,i,k)
 
-                   # tracing unit -> xbar
-                   print "wire [`DATA_WIDTH-1:0] tile%d%d_noc%d_from_trace_msg;" % (j,i,k) 
-                   print "wire                   tile%d%d_noc%d_from_trace_val;" % (j,i,k)
-                   print "wire                   tile%d%d_noc%d_from_trace_yum;" % (j,i,k)
+                   # tracing unit -> cr_to_vr
+                   print "wire [`DATA_WIDTH-1:0] tile%d_%d_noc%d_from_trace_msg;" % (j,i,k) 
+                   print "wire                   tile%d_%d_noc%d_from_trace_val;" % (j,i,k)
+                   print "wire                   tile%d_%d_noc%d_from_trace_yum;" % (j,i,k)
 
+                   # cr_to_vr -> vr_to_cr
+                   print "wire [`DATA_WIDTH-1:0] tile%d_%d_noc%d_vr_msg;" % (j,i,k)  
+                   print "wire                   tile%d_%d_noc%d_vr_val;" % (j,i,k)
+                   print "wire                   tile%d_%d_noc%d_vr_rdy;" % (j,i,k)
+                   # vr_to_cr -> xbar
+                   print "wire [`DATA_WIDTH-1:0] tile%d_%d_noc%d_cr_msg;" % (j,i,k)
+                   print "wire                   tile%d_%d_noc%d_cr_val;" % (j,i,k)
+                   print "wire                   tile%d_%d_noc%d_cr_yum;" % (j,i,k)
 
        # make offchip signals
        for k in [1,2,3]:
@@ -1012,14 +1020,14 @@ module chip(
            .myLocY                     (8'b0),  // not used
        '''
 
-       for i in range (X_TILES):
-           for j in range (Y_TILES):
+       for i in range ( X_TILES ):
+           for j in range ( Y_TILES ):
                #xbartemplate += "    .dataIn_%d (tile_%d_%d_out_noc1_data ),\n"  % (i, j,i)
                #xbartemplate += "    .validIn_%d(tile_%d_%d_out_noc1_valid),\n"  % (i, j,i)
                #xbartemplate += "    .yummyIn_%d(tile_%d_%d_out_noc1_yummy),\n"  % (i, j,i)
-               xbartemplate += "    .dataIn_%d ( tile%d%d_noc1_from_trace_msg ),\n"  % (i, j,i)               
-               xbartemplate += "    .validIn_%d( tile%d%d_noc1_from_trace_val ),\n"  % (i, j,i)
-               xbartemplate += "    .yummyIn_%d( tile%d%d_noc1_from_trace_yum ),\n"  % (i, j,i)
+               xbartemplate += "    .dataIn_%d ( tile%d_%d_noc1_from_trace_msg ),\n"  % (i,j,i)               
+               xbartemplate += "    .validIn_%d( tile%d_%d_noc1_from_trace_val ),\n"  % (i,j,i)
+               xbartemplate += "    .yummyIn_%d( tile%d_%d_noc1_from_trace_yum ),\n"  % (i,j,i)
                xbartemplate += "    .dataOut_%d(xbar_%d_out_noc1_data),\n"  % (i, i)
                xbartemplate += "    .validOut_%d(xbar_%d_out_noc1_valid),\n"  % (i, i)
                xbartemplate += "    .yummyOut_%d(xbar_%d_out_noc1_yummy),\n\n"  % (i, i)
@@ -1043,8 +1051,8 @@ module chip(
                    print "wire                   tile%d%d_noc%d_from_trace_val;" % (j,i,k)
                    print "wire                   tile%d%d_noc%d_from_trace_yum;" % (j,i,k)
        """
-       for i in range (X_TILES):
-           for j in range (Y_TILES):   
+       for i in range ( X_TILES ):
+           for j in range ( Y_TILES ):   
                xbartemplate += "\n\n"
                xbartemplate += "// OYH tracing unit: tile->trace->xbar \n"
                xbartemplate += "tracing_unit #(\n"
@@ -1053,13 +1061,13 @@ module chip(
                xbartemplate += "  .din_msg ( tile_%d_%d_out_noc1_data  ), \n"  % ( j, i ) 
                xbartemplate += "  .din_val ( tile_%d_%d_out_noc1_valid ), \n"  % ( j, i )
                xbartemplate += "  .din_yum ( tile_%d_%d_out_noc1_yummy ), \n"  % ( j, i )
-               xbartemplate += "  .dout_msg( tile%d%d_noc1_from_trace_msg), // \n" % ( j, i ) 
-               xbartemplate += "  .dout_val( tile%d%d_noc1_from_trace_val), // \n" % ( j, i )
-               xbartemplate += "  .dout_yum( tile%d%d_noc1_from_trace_yum)  // \n" % ( j, i )
+               xbartemplate += "  .dout_msg( tile%d_%d_noc1_from_trace_msg), // \n" % ( j, i ) 
+               xbartemplate += "  .dout_val( tile%d_%d_noc1_from_trace_val), // \n" % ( j, i )
+               xbartemplate += "  .dout_yum( tile%d_%d_noc1_from_trace_yum)  // \n" % ( j, i )
                xbartemplate += ");\n\n"
 
-       for i in range (X_TILES):
-           for j in range (Y_TILES):   
+       for i in range ( X_TILES ):
+           for j in range ( Y_TILES ):   
                xbartemplate += "\n\n"
                xbartemplate += "// OYH tracing unit: xbar->trace->tile \n"
                xbartemplate += "tracing_unit #(\n"
@@ -1073,7 +1081,51 @@ module chip(
                xbartemplate += "  .dout_yum( xbar_out%d_noc1_from_trace_yum )  \n" % ( i )
                xbartemplate += ");\n"
                #xbartemplate += "assign =  xbar_out%d_noc1_from_trace_msg\n" % ( i ) 
+       """
+        # tile -> tracing unit
+        print "wire [`DATA_WIDTH-1:0] tile_%d_%d_out_noc%d_data;" % (j,i,k)
+        print "wire tile_%d_%d_out_noc%d_valid;" % (j,i,k)
+        print "wire tile_%d_%d_out_noc%d_yummy;" % (j,i,k)
 
+        # tracing unit -> xbar
+        print "wire [`DATA_WIDTH-1:0] tile%d%d_noc%d_from_trace_msg;" % (j,i,k) 
+        print "wire                   tile%d%d_noc%d_from_trace_val;" % (j,i,k)
+        print "wire                   tile%d%d_noc%d_from_trace_yum;" % (j,i,k)
+       """
+       # credit based to val/rdy
+       
+       xbartemplate += "\n// tile-> trace -> cr_to_vr -> vr_to_cr -> xbar\n"
+       for x in range ( X_TILES ):
+           for y in range( Y_TILES ):
+               xbartemplate += "credit_to_valrdy tile%d_%d_to_noc1_c2v(\n" % ( y, x )
+               xbartemplate += "  .clk      ( clk_muxed           ),\n"
+               xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n" 
+               xbartemplate += "  // credit based interface\n"
+               xbartemplate += "  .data_in  ( /*tile%d_%d_noc1_from_trace_msg*/ ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_in ( /*tile%d_%d_noc1_from_trace_val*/ ),\n" % ( y, x )
+               xbartemplate += "  .yummy_in ( /*tile%d_%d_noc1_from_trace_yum*/ ),\n" % ( y, x )
+               xbartemplate += "  // val/rdy interface\n"
+               xbartemplate += "  .data_out ( /*tile%d_%d_noc1_vr_msg*/ ),\n" % ( y, x )  
+               xbartemplate += "  .valid_out( /*tile%d_%d_noc1_vr_val*/ ),\n" % ( y, x )
+               xbartemplate += "  .ready_out( /*tile%d_%d_noc1_vr_rdy*/ ) \n" % ( y, x )
+               xbartemplate += "); \n\n"
+
+               xbartemplate += "valrdy_to_credit #( \n"
+               xbartemplate += "  .BUFFER_SIZE( 4 ),\n"
+               xbartemplate += "  .BUFFER_BITS( 3 ) \n"
+               xbartemplate += ") tile%d_%d_to_noc1_v2c(\n" % ( y, x )
+               xbartemplate += "  .clk      ( clk_muxed           ),\n"
+               xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
+               xbartemplate += "   // val/rdy interface\n"
+               xbartemplate += "  .data_in  ( /*tile%d_%d_noc1_vr_msg*/ ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_in ( /*tile%d_%d_noc1_vr_val*/ ),\n" % ( y, x )
+               xbartemplate += "  .ready_in ( /*tile%d_%d_noc1_vr_rdy*/ ),\n" % ( y, x )
+               xbartemplate += "  // credit based interface\n"
+               xbartemplate += "  .data_out ( /*tile%d_%d_noc1_cr_msg*/ ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_out( /*tile%d_%d_noc1_cr_val*/ ),\n" % ( y, x )
+               xbartemplate += "  .yummy_out( /*tile%d_%d_noc1_cr_yum*/ ) \n" % ( y, x )
+               xbartemplate += "); \n\n"
+        
        print xbartemplate
        print xbartemplate.replace("noc1", "noc2")
        print xbartemplate.replace("noc1", "noc3")
