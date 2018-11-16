@@ -373,11 +373,18 @@ module chip(
                    # cr_to_vr -> vr_to_cr
                    print "wire [`DATA_WIDTH-1:0] tile%d_%d_noc%d_vr_msg;" % (j,i,k)  
                    print "wire                   tile%d_%d_noc%d_vr_val;" % (j,i,k)
-                   print "wire                   tile%d_%d_noc%d_vr_rdy;" % (j,i,k)
+                   print "wire                   tile%d_%d_noc%d_vr_rdy;" % (j,i,k)                   
+                   print "wire [`DATA_WIDTH-1:0] noc%d_tile%d_%d_vr_msg;" % (k,j,i)  
+                   print "wire                   noc%d_tile%d_%d_vr_val;" % (k,j,i)
+                   print "wire                   noc%d_tile%d_%d_vr_rdy;" % (k,j,i)
                    # vr_to_cr -> xbar
                    print "wire [`DATA_WIDTH-1:0] tile%d_%d_noc%d_cr_msg;" % (j,i,k)
                    print "wire                   tile%d_%d_noc%d_cr_val;" % (j,i,k)
                    print "wire                   tile%d_%d_noc%d_cr_yum;" % (j,i,k)
+                   # vr_to_cr -> tile
+                   print "wire [`DATA_WIDTH-1:0] noc%d_tile%d_%d_cr_msg;" % (k,j,i)
+                   print "wire                   noc%d_tile%d_%d_cr_val;" % (k,j,i)
+                   print "wire                   noc%d_tile%d_%d_cr_rdy;" % (k,j,i)
 
        # make offchip signals
        for k in [1,2,3]:
@@ -1031,9 +1038,12 @@ module chip(
                xbartemplate += "    .dataIn_%d ( tile%d_%d_noc1_cr_msg ),\n"  % (i,j,i)
                xbartemplate += "    .validIn_%d( tile%d_%d_noc1_cr_val ),\n"  % (i,j,i)
                xbartemplate += "    .yummyIn_%d( tile%d_%d_noc1_cr_yum ),\n"  % (i,j,i)
-               xbartemplate += "    .dataOut_%d(xbar_%d_out_noc1_data),\n"  % (i, i)
-               xbartemplate += "    .validOut_%d(xbar_%d_out_noc1_valid),\n"  % (i, i)
-               xbartemplate += "    .yummyOut_%d(xbar_%d_out_noc1_yummy),\n\n"  % (i, i)
+               #xbartemplate += "    .dataOut_%d(xbar_%d_out_noc1_data),\n"     % (i, i)
+               #xbartemplate += "    .validOut_%d(xbar_%d_out_noc1_valid),\n"   % (i, i)
+               #xbartemplate += "    .yummyOut_%d(xbar_%d_out_noc1_yummy),\n\n" % (i, i)
+               xbartemplate += "    .dataOut_%d ( xbar_%d_out_noc1_data  ),\n"     % (i, i)
+               xbartemplate += "    .validOut_%d( xbar_%d_out_noc1_valid ),\n"   % (i, i)
+               xbartemplate += "    .yummyOut_%d( xbar_%d_out_noc1_yummy ),\n\n" % (i, i)
 
        xbartemplate += "    .dataIn_%d(offchip_out_noc1_data),\n"  % X_TILES
        xbartemplate += "    .validIn_%d(offchip_out_noc1_valid),\n"  % X_TILES
@@ -1076,9 +1086,9 @@ module chip(
                xbartemplate += "tracing_unit #(\n"
                xbartemplate += "  .ID(%s)\n" % ("\"tile%d_to_noc1\"" % i)
                xbartemplate += ") trace_noc1_to_tile_%d_%d(\n" % ( j, i )
-               xbartemplate += "  .din_msg ( xbar_%d_out_noc1_data   ), \n"  % ( i ) 
-               xbartemplate += "  .din_val ( xbar_%d_out_noc1_valid  ), \n"  % ( i )
-               xbartemplate += "  .din_yum ( xbar_%d_out_noc1_yummy  ), \n"  % ( i )
+               xbartemplate += "  .din_msg ( noc1_tile%d_%d_cr_msg ), \n"  % ( j, i ) 
+               xbartemplate += "  .din_val ( noc1_tile%d_%d_cr_val ), \n"  % ( j, i )
+               xbartemplate += "  .din_yum ( noc1_tile%d_%d_cr_yum ), \n"  % ( j, i )
                xbartemplate += "  .dout_msg( xbar_out%d_noc1_from_trace_msg ), \n" % ( i ) 
                xbartemplate += "  .dout_val( xbar_out%d_noc1_from_trace_val ), \n" % ( i )
                xbartemplate += "  .dout_yum( xbar_out%d_noc1_from_trace_yum )  \n" % ( i )
@@ -1128,7 +1138,40 @@ module chip(
                xbartemplate += "  .valid_out( tile%d_%d_noc1_cr_val ),\n" % ( y, x )
                xbartemplate += "  .yummy_out( tile%d_%d_noc1_cr_yum ) \n" % ( y, x )
                xbartemplate += "); \n\n"
-        
+
+       xbartemplate += "\n// tile<- trace <- vr_to_cr <- cr_to_vr <- xbar\n"
+       for x in range ( X_TILES ):
+           for y in range ( Y_TILES ):
+               xbartemplate += "credit_to_valrdy noc1_to_tile%d_%d_c2v(\n" % ( y, x )
+               xbartemplate += "  .clk      ( clk_muxed           ),\n"
+               xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
+               xbartemplate += "  // credit based interface\n"
+               xbartemplate += "  .data_in  ( xbar_%d_out_noc1_data  ),\n" % ( x )
+               xbartemplate += "  .valid_in ( xbar_%d_out_noc1_valid ),\n" % ( x )
+               xbartemplate += "  .yummy_in ( xbar_%d_out_noc1_yummy ),\n" % ( x )
+               xbartemplate += "  // val/rdy interface\n"
+               xbartemplate += "  .data_out ( noc1_tile%d_%d_vr_msg ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_out( noc1_tile%d_%d_vr_val ),\n" % ( y, x )
+               xbartemplate += "  .ready_out( noc1_tile%d_%d_vr_rdy ) \n" % ( y, x )
+               xbartemplate += ");\n\n"
+
+               xbartemplate += "valrdy_to_credit #( \n"
+               xbartemplate += "  .BUFFER_SIZE( 4 ),\n"
+               xbartemplate += "  .BUFFER_BITS( 3 ) \n"
+               xbartemplate += ") noc1_to_tile%d_%d_v2c(\n" % ( y, x )
+               xbartemplate += "  .clk      ( clk_muxed           ),\n"
+               xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
+               xbartemplate += "   // val/rdy interface\n"
+               xbartemplate += "  .data_in  ( noc1_tile%d_%d_vr_msg ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_in ( noc1_tile%d_%d_vr_val ),\n" % ( y, x )
+               xbartemplate += "  .ready_in ( noc1_tile%d_%d_vr_rdy ),\n" % ( y, x )
+               xbartemplate += "  // credit based interface\n"
+               xbartemplate += "  .data_out ( noc1_tile%d_%d_cr_msg ),\n" % ( y, x ) 
+               xbartemplate += "  .valid_out( noc1_tile%d_%d_cr_val ),\n" % ( y, x )
+               xbartemplate += "  .yummy_out( noc1_tile%d_%d_cr_yum ) \n" % ( y, x )
+               xbartemplate += "); \n\n"
+
+
        print xbartemplate
        print xbartemplate.replace("noc1", "noc2")
        print xbartemplate.replace("noc1", "noc3")
