@@ -876,77 +876,77 @@ module chip(
   
    // Chip Bridge val/rdy to credit
 
-   valrdy_to_credit #(4, 3) chip_from_intf_noc1_v2c(
-      .clk(clk_muxed),
-      .reset(~rst_n_inter_sync_f),
-      .data_in(intf_chip_noc1_data),
-      .valid_in(intf_chip_noc1_valid),
-      .ready_in(intf_chip_noc1_rdy),
+//   valrdy_to_credit #(4, 3) chip_from_intf_noc1_v2c(
+//      .clk(clk_muxed),
+//      .reset(~rst_n_inter_sync_f),
+//      .data_in (intf_chip_noc1_data ),
+//      .valid_in(intf_chip_noc1_valid),
+//      .ready_in(intf_chip_noc1_rdy  ),
+//
+//      .data_out(offchip_processor_noc1_data),           // Data
+//      .valid_out(offchip_processor_noc1_valid),       // Val signal
+//      .yummy_out(offchip_processor_noc1_yummy)    // Yummy signal
+//   );
 
-      .data_out(offchip_processor_noc1_data),           // Data
-      .valid_out(offchip_processor_noc1_valid),       // Val signal
-      .yummy_out(offchip_processor_noc1_yummy)    // Yummy signal
-   );
+//   credit_to_valrdy chip_to_intf_noc1_c2v(
+//      .clk(clk_muxed),
+//      .reset(~rst_n_inter_sync_f),
+//      .data_in (processor_offchip_noc1_data ),
+//      .valid_in(processor_offchip_noc1_valid),
+//      .yummy_in(processor_offchip_noc1_yummy),
+//
+//      .data_out (chip_intf_noc1_data ),           // Data
+//      .valid_out(chip_intf_noc1_valid),       // Val signal from dynamic network to processor
+//      .ready_out(chip_intf_noc1_rdy  )    // Rdy signal from processor to dynamic network
+//   );
 
-   credit_to_valrdy chip_to_intf_noc1_c2v(
-      .clk(clk_muxed),
-      .reset(~rst_n_inter_sync_f),
-      .data_in(processor_offchip_noc1_data),
-      .valid_in(processor_offchip_noc1_valid),
-      .yummy_in(processor_offchip_noc1_yummy),
+//   valrdy_to_credit #(4, 3) chip_from_intf_noc2_v2c(
+//      .clk(clk_muxed),
+//      .reset(~rst_n_inter_sync_f),
+//      .data_in(intf_chip_noc2_data),
+//      .valid_in(intf_chip_noc2_valid),
+//      .ready_in(intf_chip_noc2_rdy),
+//
+//      .data_out(offchip_processor_noc2_data),           // Data
+//      .valid_out(offchip_processor_noc2_valid),       // Val signal
+//      .yummy_out(offchip_processor_noc2_yummy)    // Yummy signal
+//   );
 
-      .data_out(chip_intf_noc1_data),           // Data
-      .valid_out(chip_intf_noc1_valid),       // Val signal from dynamic network to processor
-      .ready_out(chip_intf_noc1_rdy)    // Rdy signal from processor to dynamic network
-   );
+//   credit_to_valrdy chip_to_intf_noc2_c2v(
+//      .clk(clk_muxed),
+//      .reset(~rst_n_inter_sync_f),
+//      .data_in(processor_offchip_noc2_data),
+//      .valid_in(processor_offchip_noc2_valid),
+//      .yummy_in(processor_offchip_noc2_yummy),
+//
+//      .data_out(chip_intf_noc2_data),           // Data
+//      .valid_out(chip_intf_noc2_valid),       // Val signal from dynamic network to processor
+//      .ready_out(chip_intf_noc2_rdy)    // Rdy signal from processor to dynamic network
+//   );
 
-   valrdy_to_credit #(4, 3) chip_from_intf_noc2_v2c(
-      .clk(clk_muxed),
-      .reset(~rst_n_inter_sync_f),
-      .data_in(intf_chip_noc2_data),
-      .valid_in(intf_chip_noc2_valid),
-      .ready_in(intf_chip_noc2_rdy),
+//   valrdy_to_credit #(4, 3) chip_from_intf_noc3_v2c(
+//      .clk(clk_muxed),
+//      .reset(~rst_n_inter_sync_f),
+//      .data_in(intf_chip_noc3_data),
+//      .valid_in(intf_chip_noc3_valid),
+//      .ready_in(intf_chip_noc3_rdy),
+//
+//      .data_out(offchip_processor_noc3_data),           // Data
+//      .valid_out(offchip_processor_noc3_valid),       // Val signal
+//      .yummy_out(offchip_processor_noc3_yummy)    // Yummy signal
+//   );
 
-      .data_out(offchip_processor_noc2_data),           // Data
-      .valid_out(offchip_processor_noc2_valid),       // Val signal
-      .yummy_out(offchip_processor_noc2_yummy)    // Yummy signal
-   );
-
-   credit_to_valrdy chip_to_intf_noc2_c2v(
-      .clk(clk_muxed),
-      .reset(~rst_n_inter_sync_f),
-      .data_in(processor_offchip_noc2_data),
-      .valid_in(processor_offchip_noc2_valid),
-      .yummy_in(processor_offchip_noc2_yummy),
-
-      .data_out(chip_intf_noc2_data),           // Data
-      .valid_out(chip_intf_noc2_valid),       // Val signal from dynamic network to processor
-      .ready_out(chip_intf_noc2_rdy)    // Rdy signal from processor to dynamic network
-   );
-
-   valrdy_to_credit #(4, 3) chip_from_intf_noc3_v2c(
-      .clk(clk_muxed),
-      .reset(~rst_n_inter_sync_f),
-      .data_in(intf_chip_noc3_data),
-      .valid_in(intf_chip_noc3_valid),
-      .ready_in(intf_chip_noc3_rdy),
-
-      .data_out(offchip_processor_noc3_data),           // Data
-      .valid_out(offchip_processor_noc3_valid),       // Val signal
-      .yummy_out(offchip_processor_noc3_yummy)    // Yummy signal
-   );
-
-   credit_to_valrdy chip_to_intf_noc3_c2v(
-      .clk(clk_muxed),
-      .reset(~rst_n_inter_sync_f),
-      .data_in(processor_offchip_noc3_data),
-      .valid_in(processor_offchip_noc3_valid),
-      .yummy_in(processor_offchip_noc3_yummy),
-
-      .data_out(chip_intf_noc3_data),           // Data
-      .valid_out(chip_intf_noc3_valid),       // Val signal from dynamic network to processor
-      .ready_out(chip_intf_noc3_rdy)    // Rdy signal from processor to dynamic network
-   );  
+//   credit_to_valrdy chip_to_intf_noc3_c2v(
+//      .clk(clk_muxed),
+//      .reset(~rst_n_inter_sync_f),
+//      .data_in(processor_offchip_noc3_data),
+//      .valid_in(processor_offchip_noc3_valid),
+//      .yummy_in(processor_offchip_noc3_yummy),
+//
+//      .data_out(chip_intf_noc3_data),           // Data
+//      .valid_out(chip_intf_noc3_valid),       // Val signal from dynamic network to processor
+//      .ready_out(chip_intf_noc3_rdy)    // Rdy signal from processor to dynamic network
+//   );  
 `endif // endif PITON_NO_CHIP_BRIDGE
 
 `ifdef ORAM_ON
@@ -1054,16 +1054,27 @@ module chip(
        xbartemplate += "    .thanksIn_%d();\n" % (X_TILES)
        xbartemplate = xbartemplate[:-2] + r'''
        );'''
-       """
-                      # tracing unit -> tiles 
-               print "wire [`DATA_WIDTH-1:0] xbar_out%d_noc%d_from_trace_msg;" % ( i, k ) 
-               print "wire                   xbar_out%d_noc%d_from_trace_val;" % ( i, k )
-               print "wire                   xbar_out%d_noc%d_from_trace_yum;" % ( i, k )
-                   # tracing unit -> xbar
-                   print "wire [`DATA_WIDTH-1:0] tile%d%d_noc%d_from_trace_msg;" % (j,i,k) 
-                   print "wire                   tile%d%d_noc%d_from_trace_val;" % (j,i,k)
-                   print "wire                   tile%d%d_noc%d_from_trace_yum;" % (j,i,k)
-       """
+
+       xbartemplate =  "crisp_box xbar_noc1(\n"
+       xbartemplate += "  .clk    ( clk_muxed        ), \n"
+       xbartemplate += "  .reset  ( ~rst_n_inter_sync), \n\n"
+       for x in range ( X_TILES ):
+           for y in range ( Y_TILES ):
+               xbartemplate += "  .din%d_msg ( tile%d_%d_noc1_vr_msg ), \n" % ( x, y, x )
+               xbartemplate += "  .din%d_val ( tile%d_%d_noc1_vr_val ), \n" % ( x, y, x )
+               xbartemplate += "  .din%d_rdy ( tile%d_%d_noc1_vr_rdy ), \n" % ( x, y, x )
+               xbartemplate += "  .dout%d_msg( noc1_tile%d_%d_vr_msg ), \n" % ( x, y, x )
+               xbartemplate += "  .dout%d_val( noc1_tile%d_%d_vr_val ), \n" % ( x, y, x )
+               xbartemplate += "  .dout%d_rdy( noc1_tile%d_%d_vr_rdy ), \n" % ( x, y, x )
+               xbartemplate += "  \n"
+       xbartemplate += "  .din%d_msg ( intf_chip_noc1_data  ), \n" % ( X_TILES )
+       xbartemplate += "  .din%d_val ( intf_chip_noc1_valid ), \n" % ( X_TILES ) 
+       xbartemplate += "  .din%d_rdy ( intf_chip_noc1_rdy   ), \n" % ( X_TILES ) 
+       xbartemplate += "  .dout%d_msg( chip_intf_noc1_data  ), \n" % ( X_TILES )  
+       xbartemplate += "  .dout%d_val( chip_intf_noc1_valid ), \n" % ( X_TILES )
+       xbartemplate += "  .dout%d_rdy( chip_intf_noc1_rdy   )  \n" % ( X_TILES )
+       xbartemplate += ");"
+
        for i in range ( X_TILES ):
            for j in range ( Y_TILES ):   
                xbartemplate += "\n\n"
@@ -1094,19 +1105,8 @@ module chip(
                xbartemplate += "  .dout_yum( xbar_out%d_noc1_from_trace_yum )  \n" % ( i )
                xbartemplate += ");\n"
                #xbartemplate += "assign =  xbar_out%d_noc1_from_trace_msg\n" % ( i ) 
-       """
-        # tile -> tracing unit
-        print "wire [`DATA_WIDTH-1:0] tile_%d_%d_out_noc%d_data;" % (j,i,k)
-        print "wire tile_%d_%d_out_noc%d_valid;" % (j,i,k)
-        print "wire tile_%d_%d_out_noc%d_yummy;" % (j,i,k)
 
-        # tracing unit -> xbar
-        print "wire [`DATA_WIDTH-1:0] tile%d%d_noc%d_from_trace_msg;" % (j,i,k) 
-        print "wire                   tile%d%d_noc%d_from_trace_val;" % (j,i,k)
-        print "wire                   tile%d%d_noc%d_from_trace_yum;" % (j,i,k)
-       """
-       # credit based to val/rdy
-       
+       # credit based to val/rdy       
        xbartemplate += "\n// tile-> trace -> cr_to_vr -> vr_to_cr -> xbar\n"
        for x in range ( X_TILES ):
            for y in range( Y_TILES ):
@@ -1123,37 +1123,37 @@ module chip(
                xbartemplate += "  .ready_out( tile%d_%d_noc1_vr_rdy ) \n" % ( y, x )
                xbartemplate += "); \n\n"
 
-               xbartemplate += "valrdy_to_credit #( \n"
-               xbartemplate += "  .BUFFER_SIZE( 4 ),\n"
-               xbartemplate += "  .BUFFER_BITS( 3 ) \n"
-               xbartemplate += ") tile%d_%d_to_noc1_v2c(\n" % ( y, x )
-               xbartemplate += "  .clk      ( clk_muxed           ),\n"
-               xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
-               xbartemplate += "   // val/rdy interface\n"
-               xbartemplate += "  .data_in  ( tile%d_%d_noc1_vr_msg ),\n" % ( y, x ) 
-               xbartemplate += "  .valid_in ( tile%d_%d_noc1_vr_val ),\n" % ( y, x )
-               xbartemplate += "  .ready_in ( tile%d_%d_noc1_vr_rdy ),\n" % ( y, x )
-               xbartemplate += "  // credit based interface\n"
-               xbartemplate += "  .data_out ( tile%d_%d_noc1_cr_msg ),\n" % ( y, x ) 
-               xbartemplate += "  .valid_out( tile%d_%d_noc1_cr_val ),\n" % ( y, x )
-               xbartemplate += "  .yummy_out( tile%d_%d_noc1_cr_yum ) \n" % ( y, x )
-               xbartemplate += "); \n\n"
+               #xbartemplate += "valrdy_to_credit #( \n"
+               #xbartemplate += "  .BUFFER_SIZE( 4 ),\n"
+               #xbartemplate += "  .BUFFER_BITS( 3 ) \n"
+               #xbartemplate += ") tile%d_%d_to_noc1_v2c(\n" % ( y, x )
+               #xbartemplate += "  .clk      ( clk_muxed           ),\n"
+               #xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
+               #xbartemplate += "   // val/rdy interface\n"
+               #xbartemplate += "  .data_in  ( tile%d_%d_noc1_vr_msg ),\n" % ( y, x ) 
+               #xbartemplate += "  .valid_in ( tile%d_%d_noc1_vr_val ),\n" % ( y, x )
+               #xbartemplate += "  .ready_in ( tile%d_%d_noc1_vr_rdy ),\n" % ( y, x )
+               #xbartemplate += "  // credit based interface\n"
+               #xbartemplate += "  .data_out ( tile%d_%d_noc1_cr_msg ),\n" % ( y, x ) 
+               #xbartemplate += "  .valid_out( tile%d_%d_noc1_cr_val ),\n" % ( y, x )
+               #xbartemplate += "  .yummy_out( tile%d_%d_noc1_cr_yum ) \n" % ( y, x )
+               #xbartemplate += "); \n\n"
 
-       xbartemplate += "\n// tile<- trace <- vr_to_cr <- cr_to_vr <- xbar\n"
+       xbartemplate += "\n// tile<- trace <- vr_to_cr <-| cr_to_vr <- xbar\n"
        for x in range ( X_TILES ):
            for y in range ( Y_TILES ):
-               xbartemplate += "credit_to_valrdy noc1_to_tile%d_%d_c2v(\n" % ( y, x )
-               xbartemplate += "  .clk      ( clk_muxed           ),\n"
-               xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
-               xbartemplate += "  // credit based interface\n"
-               xbartemplate += "  .data_in  ( xbar_%d_out_noc1_data  ),\n" % ( x )
-               xbartemplate += "  .valid_in ( xbar_%d_out_noc1_valid ),\n" % ( x )
-               xbartemplate += "  .yummy_in ( xbar_%d_out_noc1_yummy ),\n" % ( x )
-               xbartemplate += "  // val/rdy interface\n"
-               xbartemplate += "  .data_out ( noc1_tile%d_%d_vr_msg ),\n" % ( y, x ) 
-               xbartemplate += "  .valid_out( noc1_tile%d_%d_vr_val ),\n" % ( y, x )
-               xbartemplate += "  .ready_out( noc1_tile%d_%d_vr_rdy ) \n" % ( y, x )
-               xbartemplate += ");\n\n"
+               #xbartemplate += "credit_to_valrdy noc1_to_tile%d_%d_c2v(\n" % ( y, x )
+               #xbartemplate += "  .clk      ( clk_muxed           ),\n"
+               #xbartemplate += "  .reset    ( ~rst_n_inter_sync_f ),\n"
+               #xbartemplate += "  // credit based interface\n"
+               #xbartemplate += "  .data_in  ( xbar_%d_out_noc1_data  ),\n" % ( x )
+               #xbartemplate += "  .valid_in ( xbar_%d_out_noc1_valid ),\n" % ( x )
+               #xbartemplate += "  .yummy_in ( xbar_%d_out_noc1_yummy ),\n" % ( x )
+               #xbartemplate += "  // val/rdy interface\n"
+               #xbartemplate += "  .data_out ( noc1_tile%d_%d_vr_msg ),\n" % ( y, x ) 
+               #xbartemplate += "  .valid_out( noc1_tile%d_%d_vr_val ),\n" % ( y, x )
+               #xbartemplate += "  .ready_out( noc1_tile%d_%d_vr_rdy ) \n" % ( y, x )
+               #xbartemplate += ");\n\n"
 
                xbartemplate += "valrdy_to_credit #( \n"
                xbartemplate += "  .BUFFER_SIZE( 4 ),\n"
