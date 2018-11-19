@@ -1,0 +1,100 @@
+`include "define.vh"
+<%
+  from pyhplib import *
+%>
+module crisp_box(
+<%
+  for x in range( X_TILES ):
+    print "  input  [`DATA_WIDTH-1:0] din%d_msg, " % ( x ) 
+    print "  input                    din%d_val, " % ( x )
+    print "  output                   din%d_rdy, " % ( x )
+
+  for x in range( X_TILES ):
+    print "  output [`DATA_WIDTH-1:0] dout%d_msg," % ( x )
+    print "  output                   dout%d_val," % ( x )
+    print "  input                    dout%d_rdy," % ( x )
+%>
+  input clk,    
+  input reset
+);
+
+// input wires: vr_in ->|-> vr_to_cr -> cr_in -> xbar
+<%
+  for x in range ( X_TILES+1 ):
+    print "wire [`DATA_WIDTH-1:0] din%d_cr_msg; " % ( x )
+    print "wire                   din%d_cr_val; " % ( x )
+    print "wire                   din%d_cr_yum; " % ( x )
+    print ""
+%>
+// output wires : vr_out <-|<- cr_to_vr <- cr_out -< xbar
+<%
+  for x in range ( X_TILES+1 ):
+    print "wire [`DATA_WIDTH-1:0] dout%d_cr_msg;" % ( x )
+    print "wire                   dout%d_cr_val;" % ( x )
+    print "wire                   dout%d_cr_yum;" % ( x ) 
+    print ""
+%>
+
+/**************************************************************
+ * Input side valrdy to credit translation
+ **************************************************************/
+<%
+  for x in range( X_TILES+1 ):
+    print "valrdy_to_credit #( "
+    print "  .BUFFER_SIZE( 4 ),"
+    print "  .BUFFER_BITS( 3 )"
+    print ") din%d_v2c(                   " %( x )
+    print "  .clk      ( clk          ),  "
+    print "  .reset    ( reset        ),  "
+    print "  // val/rdy interface         "
+    print "  .data_in  ( din%d_msg    ),  " % ( x )
+    print "  .valid_in ( din%d_val    ),  " % ( x )
+    print "  .ready_in ( din%d_rdy    ),  " % ( x )
+    print "  // credit based interface    "
+    print "  .data_out ( din%d_cr_msg ),  " % ( x )
+    print "  .valid_out( din%d_cr_val ),  " % ( x )
+    print "  .yummy_out( din%d_cr_yum )   " % ( x )
+    print ");"
+    print ""
+%>
+/*************************************************************
+ * Output side credit to valrdy translation
+ *************************************************************/
+<%
+  for x in range( X_TILES+1 ):
+    print "credit_to_valrdy dout%d_c2v(    " % ( x )
+    print "  .clk      ( clk          ),   "
+    print "  .reset    ( reset        ),   "
+    print "  // credit interface           "
+    print "  .data_in  ( dout%d_cr_msg ),  " % ( x )
+    print "  .valid_in ( dout%d_cr_val ),  " % ( x )
+    print "  .yummy_in ( dout%d_cr_yum ),  " % ( x )
+    print "  // valrdy based interface     "
+    print "  .data_out ( dout%d_msg    ),  " % ( x )
+    print "  .valid_out( dout%d_val    ),  " % ( x )
+    print "  .ready_out( dout%d_yum    )   " % ( x )
+    print ");"
+    print ""
+%>
+/************************************************************
+ * Xbar with ctredit based interface 
+ ************************************************************/
+dynamic_node_top_wrap_para xbar_noc(
+<%
+  for x in range ( X_TILES+1 ):
+    print "  .dataIn_%d  ( din%d_cr_msg  ), " % ( x, x )
+    print "  .validIn_%d ( din%d_cr_val  ), " % ( x, x )
+    print "  .yummyIn_%d ( din%d_cr_yum  ), " % ( x, x )
+    print "  .dataOut_%d ( dout%d_cr_msg ), " % ( x, x )
+    print "  .validOut_%d( dout%d_cr_val ), " % ( x, x )
+    print "  .yummyOut_%d( dout%d_cr_yum ), " % ( x, x )  
+    print ""
+  print "  .thanksIn_%d()," % ( X_TILES )  
+%>
+  .myChipID ( 14'b0 ), // the first chip id  
+  .myLocX   ( 8'b0  ), // not used  
+  .myLocY   ( 8'b0  ), // not used
+  .clk      ( clk   ),  
+  .reset_in ( reset )
+);
+endmodule
