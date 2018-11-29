@@ -21,7 +21,7 @@ always @ (*) begin
   dout_msg = din_msg;
   dout_val = din_val;
   din_yum  = dout_yum;
-  $display("(%s): TRACING UNIT OUTPUT HERE <<<<<<<<<<<", ID);
+  //$display("(%s): TRACING UNIT OUTPUT HERE <<<<<<<<<<<", ID);
 end
 
 endmodule

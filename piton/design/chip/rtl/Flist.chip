@@ -2,3 +2,5 @@ chip.v
 synchronizer.v
 OCI.v
 crisp_box.v
+PitonXbar.v
+tracing_unit.v
