@@ -4,3 +4,4 @@ OCI.v
 crisp_box.v
 PitonXbar.v
 tracing_unit.v
+tracing_unit_vr.v
