@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
-// PitonXbar_0x2b729e0c68ec68e0
+// PitonXbar_0x7f59336c0f23d4c9
 //-----------------------------------------------------------------------------
-// num_ports: 2
+// num_ports: 3
 // msg_type: 768
 // hdr_type: 64
 // dump-vcd: False
@@ -16,40 +16,56 @@ module PitonXbar
   input  wire [  63:0] in_$001_msg,
   output wire [   0:0] in_$001_rdy,
   input  wire [   0:0] in_$001_val,
+  input  wire [  63:0] in_$002_msg,
+  output wire [   0:0] in_$002_rdy,
+  input  wire [   0:0] in_$002_val,
   output wire [  63:0] out$000_msg,
   input  wire [   0:0] out$000_rdy,
   output wire [   0:0] out$000_val,
   output wire [  63:0] out$001_msg,
   input  wire [   0:0] out$001_rdy,
   output wire [   0:0] out$001_val,
+  output wire [  63:0] out$002_msg,
+  input  wire [   0:0] out$002_rdy,
+  output wire [   0:0] out$002_val,
   input  wire [   0:0] reset
 );
 
   // wire declarations
-  wire   [   0:0] sels$000;
-  wire   [   0:0] sels$001;
+  wire   [   1:0] sels$000;
+  wire   [   1:0] sels$001;
+  wire   [   1:0] sels$002;
   wire   [   0:0] arb_en$000;
   wire   [   0:0] arb_en$001;
+  wire   [   0:0] arb_en$002;
   wire   [   0:0] has_grant$000;
   wire   [   0:0] has_grant$001;
+  wire   [   0:0] has_grant$002;
   wire   [   0:0] ser_in_val$000;
   wire   [   0:0] ser_in_val$001;
+  wire   [   0:0] ser_in_val$002;
   wire   [   0:0] ser_in_rdy$000;
   wire   [   0:0] ser_in_rdy$001;
+  wire   [   0:0] ser_in_rdy$002;
   wire   [   0:0] des_out_val$000;
   wire   [   0:0] des_out_val$001;
+  wire   [   0:0] des_out_val$002;
   wire   [   0:0] des_out_rdy$000;
   wire   [   0:0] des_out_rdy$001;
+  wire   [   0:0] des_out_rdy$002;
   wire   [ 767:0] des_out_msg$000;
   wire   [ 767:0] des_out_msg$001;
+  wire   [ 767:0] des_out_msg$002;
   wire   [   0:0] offchip$000;
   wire   [   0:0] offchip$001;
+  wire   [   0:0] offchip$002;
   wire   [   7:0] dest_x$000;
   wire   [   7:0] dest_x$001;
+  wire   [   7:0] dest_x$002;
 
 
   // localparam declarations
-  localparam num_ports = 2;
+  localparam num_ports = 3;
 
   // loop variable declarations
   integer i;
@@ -99,26 +115,54 @@ module PitonXbar
     .out_val ( des$001$out_val )
   );
 
+  // des$002 temporaries
+  wire   [   0:0] des$002$clk;
+  wire   [   0:0] des$002$reset;
+  wire   [  63:0] des$002$in__msg;
+  wire   [   0:0] des$002$in__val;
+  wire   [   0:0] des$002$out_rdy;
+  wire   [   0:0] des$002$in__rdy;
+  wire   [ 767:0] des$002$out_msg;
+  wire   [   0:0] des$002$out_val;
+
+  Deserializer_0x7d3cf1d776b62dc3 des$002
+  (
+    .clk     ( des$002$clk ),
+    .reset   ( des$002$reset ),
+    .in__msg ( des$002$in__msg ),
+    .in__val ( des$002$in__val ),
+    .out_rdy ( des$002$out_rdy ),
+    .in__rdy ( des$002$in__rdy ),
+    .out_msg ( des$002$out_msg ),
+    .out_val ( des$002$out_val )
+  );
+
   // xbar temporaries
   wire   [   0:0] xbar$clk;
   wire   [   0:0] xbar$reset;
   wire   [ 767:0] xbar$in_$000;
   wire   [ 767:0] xbar$in_$001;
-  wire   [   0:0] xbar$sel$000;
-  wire   [   0:0] xbar$sel$001;
+  wire   [ 767:0] xbar$in_$002;
+  wire   [   1:0] xbar$sel$000;
+  wire   [   1:0] xbar$sel$001;
+  wire   [   1:0] xbar$sel$002;
   wire   [ 767:0] xbar$out$000;
   wire   [ 767:0] xbar$out$001;
+  wire   [ 767:0] xbar$out$002;
 
-  Crossbar_0x722f766bd17e4910 xbar
+  Crossbar_0x393007c9e5bcc09f xbar
   (
     .clk     ( xbar$clk ),
     .reset   ( xbar$reset ),
     .in_$000 ( xbar$in_$000 ),
     .in_$001 ( xbar$in_$001 ),
+    .in_$002 ( xbar$in_$002 ),
     .sel$000 ( xbar$sel$000 ),
     .sel$001 ( xbar$sel$001 ),
+    .sel$002 ( xbar$sel$002 ),
     .out$000 ( xbar$out$000 ),
-    .out$001 ( xbar$out$001 )
+    .out$001 ( xbar$out$001 ),
+    .out$002 ( xbar$out$002 )
   );
 
   // ser$000 temporaries
@@ -165,14 +209,36 @@ module PitonXbar
     .out_val ( ser$001$out_val )
   );
 
+  // ser$002 temporaries
+  wire   [   0:0] ser$002$clk;
+  wire   [   0:0] ser$002$reset;
+  wire   [ 767:0] ser$002$in__msg;
+  wire   [   0:0] ser$002$in__val;
+  wire   [   0:0] ser$002$out_rdy;
+  wire   [   0:0] ser$002$in__rdy;
+  wire   [  63:0] ser$002$out_msg;
+  wire   [   0:0] ser$002$out_val;
+
+  Serializer_0x44b4e9815337b1b0 ser$002
+  (
+    .clk     ( ser$002$clk ),
+    .reset   ( ser$002$reset ),
+    .in__msg ( ser$002$in__msg ),
+    .in__val ( ser$002$in__val ),
+    .out_rdy ( ser$002$out_rdy ),
+    .in__rdy ( ser$002$in__rdy ),
+    .out_msg ( ser$002$out_msg ),
+    .out_val ( ser$002$out_val )
+  );
+
   // arbitors$000 temporaries
   wire   [   0:0] arbitors$000$clk;
   wire   [   0:0] arbitors$000$reset;
   wire   [   0:0] arbitors$000$en;
-  wire   [   1:0] arbitors$000$reqs;
-  wire   [   1:0] arbitors$000$grants;
+  wire   [   2:0] arbitors$000$reqs;
+  wire   [   2:0] arbitors$000$grants;
 
-  RoundRobinArbiterEn_0x19e7cb7b9eb0ce07 arbitors$000
+  RoundRobinArbiterEn_0x26266b5c3a0ddf1e arbitors$000
   (
     .clk    ( arbitors$000$clk ),
     .reset  ( arbitors$000$reset ),
@@ -185,16 +251,32 @@ module PitonXbar
   wire   [   0:0] arbitors$001$clk;
   wire   [   0:0] arbitors$001$reset;
   wire   [   0:0] arbitors$001$en;
-  wire   [   1:0] arbitors$001$reqs;
-  wire   [   1:0] arbitors$001$grants;
+  wire   [   2:0] arbitors$001$reqs;
+  wire   [   2:0] arbitors$001$grants;
 
-  RoundRobinArbiterEn_0x19e7cb7b9eb0ce07 arbitors$001
+  RoundRobinArbiterEn_0x26266b5c3a0ddf1e arbitors$001
   (
     .clk    ( arbitors$001$clk ),
     .reset  ( arbitors$001$reset ),
     .en     ( arbitors$001$en ),
     .reqs   ( arbitors$001$reqs ),
     .grants ( arbitors$001$grants )
+  );
+
+  // arbitors$002 temporaries
+  wire   [   0:0] arbitors$002$clk;
+  wire   [   0:0] arbitors$002$reset;
+  wire   [   0:0] arbitors$002$en;
+  wire   [   2:0] arbitors$002$reqs;
+  wire   [   2:0] arbitors$002$grants;
+
+  RoundRobinArbiterEn_0x26266b5c3a0ddf1e arbitors$002
+  (
+    .clk    ( arbitors$002$clk ),
+    .reset  ( arbitors$002$reset ),
+    .en     ( arbitors$002$en ),
+    .reqs   ( arbitors$002$reqs ),
+    .grants ( arbitors$002$grants )
   );
 
   // signal connections
@@ -204,6 +286,9 @@ module PitonXbar
   assign arbitors$001$clk   = clk;
   assign arbitors$001$en    = arb_en$001;
   assign arbitors$001$reset = reset;
+  assign arbitors$002$clk   = clk;
+  assign arbitors$002$en    = arb_en$002;
+  assign arbitors$002$reset = reset;
   assign des$000$clk        = clk;
   assign des$000$in__msg    = in_$000_msg;
   assign des$000$in__val    = in_$000_val;
@@ -214,16 +299,26 @@ module PitonXbar
   assign des$001$in__val    = in_$001_val;
   assign des$001$out_rdy    = des_out_rdy$001;
   assign des$001$reset      = reset;
+  assign des$002$clk        = clk;
+  assign des$002$in__msg    = in_$002_msg;
+  assign des$002$in__val    = in_$002_val;
+  assign des$002$out_rdy    = des_out_rdy$002;
+  assign des$002$reset      = reset;
   assign des_out_msg$000    = des$000$out_msg;
   assign des_out_msg$001    = des$001$out_msg;
+  assign des_out_msg$002    = des$002$out_msg;
   assign des_out_val$000    = des$000$out_val;
   assign des_out_val$001    = des$001$out_val;
+  assign des_out_val$002    = des$002$out_val;
   assign in_$000_rdy        = des$000$in__rdy;
   assign in_$001_rdy        = des$001$in__rdy;
+  assign in_$002_rdy        = des$002$in__rdy;
   assign out$000_msg        = ser$000$out_msg;
   assign out$000_val        = ser$000$out_val;
   assign out$001_msg        = ser$001$out_msg;
   assign out$001_val        = ser$001$out_val;
+  assign out$002_msg        = ser$002$out_msg;
+  assign out$002_val        = ser$002$out_val;
   assign ser$000$clk        = clk;
   assign ser$000$in__msg    = xbar$out$000;
   assign ser$000$in__val    = ser_in_val$000;
@@ -234,49 +329,72 @@ module PitonXbar
   assign ser$001$in__val    = ser_in_val$001;
   assign ser$001$out_rdy    = out$001_rdy;
   assign ser$001$reset      = reset;
+  assign ser$002$clk        = clk;
+  assign ser$002$in__msg    = xbar$out$002;
+  assign ser$002$in__val    = ser_in_val$002;
+  assign ser$002$out_rdy    = out$002_rdy;
+  assign ser$002$reset      = reset;
   assign ser_in_rdy$000     = ser$000$in__rdy;
   assign ser_in_rdy$001     = ser$001$in__rdy;
+  assign ser_in_rdy$002     = ser$002$in__rdy;
   assign xbar$clk           = clk;
   assign xbar$in_$000       = des$000$out_msg;
   assign xbar$in_$001       = des$001$out_msg;
+  assign xbar$in_$002       = des$002$out_msg;
   assign xbar$reset         = reset;
   assign xbar$sel$000       = sels$000;
   assign xbar$sel$001       = sels$001;
+  assign xbar$sel$002       = sels$002;
 
   // array declarations
-  reg    [   0:0] arb_en[0:1];
+  reg    [   0:0] arb_en[0:2];
   assign arb_en$000 = arb_en[  0];
   assign arb_en$001 = arb_en[  1];
-  wire   [   1:0] arbitors$grants[0:1];
+  assign arb_en$002 = arb_en[  2];
+  wire   [   2:0] arbitors$grants[0:2];
   assign arbitors$grants[  0] = arbitors$000$grants;
   assign arbitors$grants[  1] = arbitors$001$grants;
-  reg    [   1:0] arbitors$reqs[0:1];
+  assign arbitors$grants[  2] = arbitors$002$grants;
+  reg    [   2:0] arbitors$reqs[0:2];
   assign arbitors$000$reqs = arbitors$reqs[  0];
   assign arbitors$001$reqs = arbitors$reqs[  1];
-  wire   [ 767:0] des_out_msg[0:1];
+  assign arbitors$002$reqs = arbitors$reqs[  2];
+  wire   [ 767:0] des_out_msg[0:2];
   assign des_out_msg[  0] = des_out_msg$000;
   assign des_out_msg[  1] = des_out_msg$001;
-  reg    [   0:0] des_out_rdy[0:1];
+  assign des_out_msg[  2] = des_out_msg$002;
+  reg    [   0:0] des_out_rdy[0:2];
   assign des_out_rdy$000 = des_out_rdy[  0];
   assign des_out_rdy$001 = des_out_rdy[  1];
-  wire   [   0:0] des_out_val[0:1];
+  assign des_out_rdy$002 = des_out_rdy[  2];
+  wire   [   0:0] des_out_val[0:2];
   assign des_out_val[  0] = des_out_val$000;
   assign des_out_val[  1] = des_out_val$001;
-  reg    [   0:0] has_grant[0:1];
+  assign des_out_val[  2] = des_out_val$002;
+  reg    [   7:0] dest_x[0:2];
+  assign dest_x$000 = dest_x[  0];
+  assign dest_x$001 = dest_x[  1];
+  assign dest_x$002 = dest_x[  2];
+  reg    [   0:0] has_grant[0:2];
   assign has_grant$000 = has_grant[  0];
   assign has_grant$001 = has_grant[  1];
-  reg    [   0:0] offchip[0:1];
+  assign has_grant$002 = has_grant[  2];
+  reg    [   0:0] offchip[0:2];
   assign offchip$000 = offchip[  0];
   assign offchip$001 = offchip[  1];
-  reg    [   0:0] sels[0:1];
+  assign offchip$002 = offchip[  2];
+  reg    [   1:0] sels[0:2];
   assign sels$000 = sels[  0];
   assign sels$001 = sels[  1];
-  wire   [   0:0] ser_in_rdy[0:1];
+  assign sels$002 = sels[  2];
+  wire   [   0:0] ser_in_rdy[0:2];
   assign ser_in_rdy[  0] = ser_in_rdy$000;
   assign ser_in_rdy[  1] = ser_in_rdy$001;
-  reg    [   0:0] ser_in_val[0:1];
+  assign ser_in_rdy[  2] = ser_in_rdy$002;
+  reg    [   0:0] ser_in_val[0:2];
   assign ser_in_val$000 = ser_in_val[  0];
   assign ser_in_val$001 = ser_in_val[  1];
+  assign ser_in_val$002 = ser_in_val[  2];
 
   // PYMTL SOURCE:
   //
@@ -406,12 +524,11 @@ module PitonXbar
   //         #s.arbitors[s.dest_x[i]].reqs[i].value = s.des_out_val[i]        
   //
   //       for i in range( num_ports ): 
-  //         # This won't translate correctly...
-  //         #s.dest_x[i].value = s.des_out_msg[i].xpos 
+  //         s.dest_x[i].value = s.des_out_msg[i][42:50]
   //         if s.offchip[i]:
   //           s.arbitors[num_ports-1].reqs[i].value = s.des_out_val[i]
   //         else:
-  //           s.arbitors[0].reqs[i].value = s.des_out_val[i]
+  //           s.arbitors[s.dest_x[i]].reqs[i].value = s.des_out_val[i]
 
   // logic for arbitorReq()
   always @ (*) begin
@@ -424,17 +541,18 @@ module PitonXbar
     end
     for (i=0; i < num_ports; i=i+1)
     begin
+      dest_x[i] = des_out_msg[i][(50)-1:42];
       if (offchip[i]) begin
         arbitors$reqs[(num_ports-1)][i] = des_out_val[i];
       end
       else begin
-        arbitors$reqs[0][i] = des_out_val[i];
+        arbitors$reqs[dest_x[i]][i] = des_out_val[i];
       end
     end
   end
 
 
-endmodule // PitonXbar_0x2b729e0c68ec68e0
+endmodule // PitonXbar_0x7f59336c0f23d4c9
 `default_nettype wire
 
 //-----------------------------------------------------------------------------
@@ -654,42 +772,48 @@ endmodule // Deserializer_0x7d3cf1d776b62dc3
 `default_nettype wire
 
 //-----------------------------------------------------------------------------
-// Crossbar_0x722f766bd17e4910
+// Crossbar_0x393007c9e5bcc09f
 //-----------------------------------------------------------------------------
-// nports: 2
+// nports: 3
 // dtype: 768
 // dump-vcd: False
 // verilator-xinit: zeros
 `default_nettype none
-module Crossbar_0x722f766bd17e4910
+module Crossbar_0x393007c9e5bcc09f
 (
   input  wire [   0:0] clk,
   input  wire [ 767:0] in_$000,
   input  wire [ 767:0] in_$001,
+  input  wire [ 767:0] in_$002,
   output wire [ 767:0] out$000,
   output wire [ 767:0] out$001,
+  output wire [ 767:0] out$002,
   input  wire [   0:0] reset,
-  input  wire [   0:0] sel$000,
-  input  wire [   0:0] sel$001
+  input  wire [   1:0] sel$000,
+  input  wire [   1:0] sel$001,
+  input  wire [   1:0] sel$002
 );
 
   // localparam declarations
-  localparam nports = 2;
+  localparam nports = 3;
 
   // loop variable declarations
   integer i;
 
 
   // array declarations
-  wire   [ 767:0] in_[0:1];
+  wire   [ 767:0] in_[0:2];
   assign in_[  0] = in_$000;
   assign in_[  1] = in_$001;
-  reg    [ 767:0] out[0:1];
+  assign in_[  2] = in_$002;
+  reg    [ 767:0] out[0:2];
   assign out$000 = out[  0];
   assign out$001 = out[  1];
-  wire   [   0:0] sel[0:1];
+  assign out$002 = out[  2];
+  wire   [   1:0] sel[0:2];
   assign sel[  0] = sel$000;
   assign sel[  1] = sel$001;
+  assign sel[  2] = sel$002;
 
   // PYMTL SOURCE:
   //
@@ -708,7 +832,7 @@ module Crossbar_0x722f766bd17e4910
   end
 
 
-endmodule // Crossbar_0x722f766bd17e4910
+endmodule // Crossbar_0x393007c9e5bcc09f
 `default_nettype wire
 
 //-----------------------------------------------------------------------------
@@ -841,31 +965,31 @@ endmodule // Serializer_0x44b4e9815337b1b0
 `default_nettype wire
 
 //-----------------------------------------------------------------------------
-// RoundRobinArbiterEn_0x19e7cb7b9eb0ce07
+// RoundRobinArbiterEn_0x26266b5c3a0ddf1e
 //-----------------------------------------------------------------------------
-// nreqs: 2
+// nreqs: 3
 // dump-vcd: False
 // verilator-xinit: zeros
 `default_nettype none
-module RoundRobinArbiterEn_0x19e7cb7b9eb0ce07
+module RoundRobinArbiterEn_0x26266b5c3a0ddf1e
 (
   input  wire [   0:0] clk,
   input  wire [   0:0] en,
-  output reg  [   1:0] grants,
-  input  wire [   1:0] reqs,
+  output reg  [   2:0] grants,
+  input  wire [   2:0] reqs,
   input  wire [   0:0] reset
 );
 
   // register declarations
-  reg    [   3:0] grants_int;
-  reg    [   4:0] kills;
+  reg    [   5:0] grants_int;
+  reg    [   6:0] kills;
   reg    [   0:0] priority_en;
-  reg    [   3:0] priority_int;
-  reg    [   3:0] reqs_int;
+  reg    [   5:0] priority_int;
+  reg    [   5:0] reqs_int;
 
   // localparam declarations
-  localparam nreqs = 2;
-  localparam nreqsX2 = 4;
+  localparam nreqs = 3;
+  localparam nreqsX2 = 6;
 
   // loop variable declarations
   integer i;
@@ -874,10 +998,10 @@ module RoundRobinArbiterEn_0x19e7cb7b9eb0ce07
   wire   [   0:0] priority_reg$clk;
   wire   [   0:0] priority_reg$reset;
   wire   [   0:0] priority_reg$en;
-  wire   [   1:0] priority_reg$in_;
-  wire   [   1:0] priority_reg$out;
+  wire   [   2:0] priority_reg$in_;
+  wire   [   2:0] priority_reg$out;
 
-  RegEnRst_0x1e1faef85a2b07ef priority_reg
+  RegEnRst_0x2b6646c5372a210a priority_reg
   (
     .clk   ( priority_reg$clk ),
     .reset ( priority_reg$reset ),
@@ -889,8 +1013,8 @@ module RoundRobinArbiterEn_0x19e7cb7b9eb0ce07
   // signal connections
   assign priority_reg$clk      = clk;
   assign priority_reg$en       = priority_en;
-  assign priority_reg$in_[0]   = grants[1];
-  assign priority_reg$in_[1:1] = grants[0:0];
+  assign priority_reg$in_[0]   = grants[2];
+  assign priority_reg$in_[2:1] = grants[1:0];
   assign priority_reg$reset    = reset;
 
 
@@ -965,23 +1089,23 @@ module RoundRobinArbiterEn_0x19e7cb7b9eb0ce07
   end
 
 
-endmodule // RoundRobinArbiterEn_0x19e7cb7b9eb0ce07
+endmodule // RoundRobinArbiterEn_0x26266b5c3a0ddf1e
 `default_nettype wire
 
 //-----------------------------------------------------------------------------
-// RegEnRst_0x1e1faef85a2b07ef
+// RegEnRst_0x2b6646c5372a210a
 //-----------------------------------------------------------------------------
-// dtype: 2
+// dtype: 3
 // reset_value: 1
 // dump-vcd: False
 // verilator-xinit: zeros
 `default_nettype none
-module RegEnRst_0x1e1faef85a2b07ef
+module RegEnRst_0x2b6646c5372a210a
 (
   input  wire [   0:0] clk,
   input  wire [   0:0] en,
-  input  wire [   1:0] in_,
-  output reg  [   1:0] out,
+  input  wire [   2:0] in_,
+  output reg  [   2:0] out,
   input  wire [   0:0] reset
 );
 
@@ -1014,6 +1138,6 @@ module RegEnRst_0x1e1faef85a2b07ef
   end
 
 
-endmodule // RegEnRst_0x1e1faef85a2b07ef
+endmodule // RegEnRst_0x2b6646c5372a210a
 `default_nettype wire
 
