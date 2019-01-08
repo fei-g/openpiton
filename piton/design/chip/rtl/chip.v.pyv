@@ -390,9 +390,12 @@ module chip(
            print "wire [`DATA_WIDTH-1:0] offchip_out_noc%d_data;" % (k)
            print "wire offchip_out_noc%d_valid;" % (k)
            print "wire offchip_out_noc%d_yummy;" % (k)
-
-
-
+           print "wire [`DATA_WIDTH-1:0] offchip_trace_to_noc%d_msg;" % (k)
+           print "wire offchip_trace_to_noc%d_val;" % (k)
+           print "wire offchip_trace_to_noc%d_rdy;" % (k)
+           print "wire [`DATA_WIDTH-1:0] offchip_trace_from_noc%d_msg;" % (k)
+           print "wire offchip_trace_from_noc%d_val;" % (k)
+           print "wire offchip_trace_from_noc%d_rdy;" % (k)
 
    else:
        for i in range(X_TILES):
@@ -1066,34 +1069,61 @@ module chip(
                xbartemplate += "  .dout%d_val( noc1_tile%d_%d_vr_val ), \n" % ( x, y, x )
                xbartemplate += "  .dout%d_rdy( noc1_tile%d_%d_vr_rdy ), \n" % ( x, y, x )
                xbartemplate += "  \n"
-       xbartemplate += "  .din%d_msg ( intf_chip_noc1_data  ), \n" % ( X_TILES )
-       xbartemplate += "  .din%d_val ( intf_chip_noc1_valid ), \n" % ( X_TILES ) 
-       xbartemplate += "  .din%d_rdy ( intf_chip_noc1_rdy   ), \n" % ( X_TILES ) 
-       xbartemplate += "  .dout%d_msg( chip_intf_noc1_data  ), \n" % ( X_TILES )  
-       xbartemplate += "  .dout%d_val( chip_intf_noc1_valid ), \n" % ( X_TILES )
-       xbartemplate += "  .dout%d_rdy( chip_intf_noc1_rdy   )  \n" % ( X_TILES )
-       xbartemplate += ");"
+       xbartemplate += "  .din%d_msg ( offchip_trace_to_noc1_msg   ), \n" % ( X_TILES )
+       xbartemplate += "  .din%d_val ( offchip_trace_to_noc1_val   ), \n" % ( X_TILES ) 
+       xbartemplate += "  .din%d_rdy ( offchip_trace_to_noc1_rdy   ), \n" % ( X_TILES ) 
+       xbartemplate += "  .dout%d_msg( offchip_trace_from_noc1_msg ), \n" % ( X_TILES )  
+       xbartemplate += "  .dout%d_val( offchip_trace_from_noc1_val ), \n" % ( X_TILES )
+       xbartemplate += "  .dout%d_rdy( offchip_trace_from_noc1_rdy )  \n" % ( X_TILES )
+       xbartemplate += ");\n"
 
-       #xbartemplate =  "PitonXbar xbar_noc1(\n"
-       #xbartemplate += "  .clk    ( clk_muxed        ), \n"
-       #xbartemplate += "  .reset  ( ~rst_n_inter_sync), \n\n"
-       #for x in range ( X_TILES ):
-       #    for y in range ( Y_TILES ):
-       #        xbartemplate += "  .in_$00%d_msg( tile%d_%d_noc1_vr_msg ), \n" % ( x, y, x )
-       #        xbartemplate += "  .in_$00%d_val( tile%d_%d_noc1_vr_val ), \n" % ( x, y, x )
-       #        xbartemplate += "  .in_$00%d_rdy( tile%d_%d_noc1_vr_rdy ), \n" % ( x, y, x )
-       #        xbartemplate += "  .out$00%d_msg( noc1_tile%d_%d_vr_msg ), \n" % ( x, y, x )
-       #        xbartemplate += "  .out$00%d_val( noc1_tile%d_%d_vr_val ), \n" % ( x, y, x )
-       #        xbartemplate += "  .out$00%d_rdy( noc1_tile%d_%d_vr_rdy ), \n" % ( x, y, x )
-       #        xbartemplate += "  \n"
-       #xbartemplate += "  .in_$00%d_msg ( intf_chip_noc1_data  ), \n" % ( X_TILES )
-       #xbartemplate += "  .in_$00%d_val ( intf_chip_noc1_valid ), \n" % ( X_TILES ) 
-       #xbartemplate += "  .in_$00%d_rdy ( intf_chip_noc1_rdy   ), \n" % ( X_TILES ) 
-       #xbartemplate += "  .out$00%d_msg( chip_intf_noc1_data  ), \n" % ( X_TILES )  
-       #xbartemplate += "  .out$00%d_val( chip_intf_noc1_valid ), \n" % ( X_TILES )
-       #xbartemplate += "  .out$00%d_rdy( chip_intf_noc1_rdy   )  \n" % ( X_TILES )
-       #xbartemplate += ");"
+       xbartemplate =  "PitonXbar xbar_noc1(\n"
+       xbartemplate += "  .clk    ( clk_muxed         ), \n"
+       xbartemplate += "  .reset  ( ~rst_n_inter_sync ), \n\n"
+       for x in range ( X_TILES ):
+           for y in range ( Y_TILES ):
+               xbartemplate += "  .in_$00%d_msg( tile%d_%d_noc1_vr_msg ), \n" % ( x, y, x )
+               xbartemplate += "  .in_$00%d_val( tile%d_%d_noc1_vr_val ), \n" % ( x, y, x )
+               xbartemplate += "  .in_$00%d_rdy( tile%d_%d_noc1_vr_rdy ), \n" % ( x, y, x )
+               xbartemplate += "  .out$00%d_msg( noc1_tile%d_%d_vr_msg ), \n" % ( x, y, x )
+               xbartemplate += "  .out$00%d_val( noc1_tile%d_%d_vr_val ), \n" % ( x, y, x )
+               xbartemplate += "  .out$00%d_rdy( noc1_tile%d_%d_vr_rdy ), \n" % ( x, y, x )
+               xbartemplate += "  \n"
+       xbartemplate += "  .in_$00%d_msg( offchip_trace_to_noc1_msg   ), \n" % ( X_TILES )
+       xbartemplate += "  .in_$00%d_val( offchip_trace_to_noc1_val   ), \n" % ( X_TILES ) 
+       xbartemplate += "  .in_$00%d_rdy( offchip_trace_to_noc1_rdy   ), \n" % ( X_TILES ) 
+       xbartemplate += "  .out$00%d_msg( offchip_trace_from_noc1_msg ), \n" % ( X_TILES )  
+       xbartemplate += "  .out$00%d_val( offchip_trace_from_noc1_val ), \n" % ( X_TILES )
+       xbartemplate += "  .out$00%d_rdy( offchip_trace_from_noc1_rdy )  \n" % ( X_TILES )
+       xbartemplate += ");\n"
+       
+       xbartemplate += "\n// OYH tracing unit: offchip -> xbar\n"
+       xbartemplate += "tracing_unit_vr #(\n"
+       xbartemplate += "  .ID(%s)\n" % ("\"offchip_to_noc1\"")
+       xbartemplate += ") trace_offchip_to_noc1(\n"
+       xbartemplate += "  .clk     ( clk_muxed                 ), \n"
+       xbartemplate += "  .rst     ( ~rst_n_inter_sync         ), \n"
+       xbartemplate += "  .din_msg ( intf_chip_noc1_data   ),\n"    
+       xbartemplate += "  .din_val ( intf_chip_noc1_valid  ),\n"   
+       xbartemplate += "  .din_rdy ( intf_chip_noc1_rdy    ),\n"   
+       xbartemplate += "  .dout_msg( offchip_trace_to_noc1_msg ),\n" 
+       xbartemplate += "  .dout_val( offchip_trace_to_noc1_val ),\n"
+       xbartemplate += "  .dout_rdy( offchip_trace_to_noc1_rdy )\n"
+       xbartemplate += ");\n\n"
 
+       xbartemplate += "\n// OYH tracing unit: xbar -> offchip\n"
+       xbartemplate += "tracing_unit_vr #(\n"
+       xbartemplate += "  .ID(%s)\n" % ("\"noc1_to_offchip\"")
+       xbartemplate += ") trace_noc1_to_offchip(\n" 
+       xbartemplate += "  .clk     ( clk_muxed                   ),\n"
+       xbartemplate += "  .rst     ( ~rst_n_inter_sync           ),\n"
+       xbartemplate += "  .din_msg ( offchip_trace_from_noc1_msg ),\n"    
+       xbartemplate += "  .din_val ( offchip_trace_from_noc1_val ),\n"   
+       xbartemplate += "  .din_rdy ( offchip_trace_from_noc1_rdy ),\n"   
+       xbartemplate += "  .dout_msg( chip_intf_noc1_data  ),\n" 
+       xbartemplate += "  .dout_val( chip_intf_noc1_valid ),\n"
+       xbartemplate += "  .dout_rdy( chip_intf_noc1_rdy   )\n"
+       xbartemplate += ");\n\n"
 
        for i in range ( X_TILES ):
            for j in range ( Y_TILES ):   
@@ -1102,6 +1132,8 @@ module chip(
                xbartemplate += "tracing_unit #(\n"
                xbartemplate += "  .ID(%s)\n" % ("\"tile%d_to_noc1\"" % i)
                xbartemplate += ") trace_tile_%d_%d_to_noc1(\n" % ( j, i )
+               xbartemplate += "  .clk     ( clk_muxed                 ), \n"
+               xbartemplate += "  .rst     ( ~rst_n_inter_sync         ), \n"
                xbartemplate += "  .din_msg ( tile_%d_%d_out_noc1_data  ), \n"  % ( j, i ) 
                xbartemplate += "  .din_val ( tile_%d_%d_out_noc1_valid ), \n"  % ( j, i )
                xbartemplate += "  .din_yum ( tile_%d_%d_out_noc1_yummy ), \n"  % ( j, i )
@@ -1115,8 +1147,10 @@ module chip(
                xbartemplate += "\n\n"
                xbartemplate += "// OYH tracing unit: xbar->trace->tile \n"
                xbartemplate += "tracing_unit #(\n"
-               xbartemplate += "  .ID(%s)\n" % ("\"tile%d_to_noc1\"" % i)
+               xbartemplate += "  .ID(%s)\n" % ("\"noc1_to_tile%d\"" % i)
                xbartemplate += ") trace_noc1_to_tile_%d_%d(\n" % ( j, i )
+               xbartemplate += "  .clk     ( clk_muxed                 ), \n"
+               xbartemplate += "  .rst     ( ~rst_n_inter_sync         ), \n"
                xbartemplate += "  .din_msg ( noc1_tile%d_%d_cr_msg ), \n"  % ( j, i ) 
                xbartemplate += "  .din_val ( noc1_tile%d_%d_cr_val ), \n"  % ( j, i )
                xbartemplate += "  .din_yum ( noc1_tile%d_%d_cr_yum ), \n"  % ( j, i )
