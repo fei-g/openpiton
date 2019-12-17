@@ -25,6 +25,7 @@
 `include "iop.h"
 `include "lsu.tmp.h"
 `include "ifu.tmp.h"
+`include "cross_module.tmp.h"
 `define INTF0_WIDTH 61
 `define INTF1_WIDTH 125
 `define INTF2_WIDTH 192
@@ -32,12 +33,6 @@
 `define INTF4_WIDTH 109
 `define INTF5_WIDTH 45
 `define CLEAN_CYCLE 200
-
-`ifndef RTL_SPU
-`define LSU_PATH sparc0.lsu.lsu
-`else
-`define LSU_PATH sparc0.lsu
-`endif
 
 module sas_intf (/*AUTOARG*/
    // Inputs
@@ -4579,7 +4574,11 @@ module sas_intf (/*AUTOARG*/
 `ifdef RTL_SPARC0
    always @(posedge clk)begin//clean up buffer
       if(rst_l)begin
+`ifndef VERILATOR
 	 if(`PC_CMP.active_thread[31:0] && (`PC_CMP.good[31:0] == `PC_CMP.active_thread[31:0]))match_count = match_count + 1;
+`else // ifndef VERILATOR
+	 if(`PC_CMP.active_thread[3:0] && (`PC_CMP.good[3:0] == `PC_CMP.active_thread[3:0]))match_count = match_count + 1;
+`endif // ifndef VERILATOR
 	 if(match_count == `CLEAN_CYCLE)match = 0;
       end
       else begin

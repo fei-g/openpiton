@@ -28,7 +28,6 @@
 //==================================================================================================
 //  Filename      : piton_sd_transaction_manager.v
 //  Created On    : 2017-03-14
-//  Last Modified : 2017-06-17 18:23:51
 //  Revision      :
 //  Author        : Ang Li
 //  Company       : Princeton University
@@ -38,7 +37,7 @@
 //                  SD controller IP core with a simple val/rdy interface.
 //==================================================================================================
 
-`include "define.vh"
+`include "define.tmp.h"
 `include "sd_defines.h"
 `include "piton_sd_define.vh"
 
@@ -140,6 +139,8 @@ module piton_sd_transaction_manager(
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state   <=  ST_RST;
+            req_addr_sd_f <= 0;
+            req_addr_dma_f <= 0;
         end
         else begin
             state   <=  state_next;

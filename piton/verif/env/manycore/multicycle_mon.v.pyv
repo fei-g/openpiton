@@ -45,6 +45,8 @@
 `include "sys.h"
 `include "iop.h"
 
+`ifndef VERILATOR
+
 `define NO_OF_SIGNALS 1
 
 <%
@@ -87,6 +89,7 @@ end
 
 <%
 text = '''
+`ifdef RTL_SPARC1
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Source net 1 : `SPARC_CORE1.sparc0.tlu.mmu_dp.tlu_dtlb_tte_tag_w2[54:13]
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,8 +416,9 @@ text = '''
    initial @start_monitors forever @(`SPARC_CORE1.sparc0.ifu.invctl.const_cpuid[2:0]) 
 `endif
        $display("%d: ERROR: multicyclemon: Value of `SPARC_CORE1.sparc0.ifu.invctl.const_cpuid[2:0] changed after reset\\n",$time);
+`endif
 '''
-pattern = ["CORE1", "spc1"]
+pattern = ["RTL_SPARC1", "CORE1", "spc1"]
 tt = ReplicatePattern1(text, pattern)
 print tt
 %>
@@ -437,4 +441,4 @@ print tt
 
 endmodule
 
-
+`endif // ifndef VERILATOR

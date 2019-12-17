@@ -31,6 +31,7 @@ l15_mshr.v
 l15_pipeline.v
 rf_l15_lruarray.v
 rf_l15_mesi.v
+rf_l15_lrsc_flag.v
 rf_l15_wmt.v
 l15_cpxencoder.v
 
@@ -50,3 +51,6 @@ l15_priority_encoder.v
 sram_wrappers/sram_l15_tag.v
 sram_wrappers/sram_l15_data.v
 sram_wrappers/sram_l15_hmt.v
+
+pico_decoder.v
+l15_picoencoder.v

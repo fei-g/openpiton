@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 `include "l2.tmp.h"
-`include "define.vh"
+`include "define.tmp.h"
 
 
 <%
@@ -64,6 +64,7 @@ module l2_pipe1_dpath(
 
     //Inputs to Stage 1   
 
+`ifdef NO_L2_CAM_MSHR
     //inputs from the mshr
     input wire [`L2_MSHR_ADDR_OUT_WIDTH-1:0] mshr_addr_S1,
     input wire [`MSG_MSHRID_WIDTH-1:0] mshr_mshrid_S1,
@@ -76,6 +77,33 @@ module l2_pipe1_dpath(
     input wire [`MSG_LSID_WIDTH-1:0] mshr_lsid_S1,
     input wire [`MSG_LSID_WIDTH-1:0] mshr_miss_lsid_S1,
     input wire mshr_recycled_S1,
+`else
+    //inputs from the mshr
+    input wire [`L2_MSHR_ADDR_OUT_WIDTH-1:0] cam_mshr_addr_S1,
+    input wire [`MSG_MSHRID_WIDTH-1:0] cam_mshr_mshrid_S1,
+    input wire [`L2_WAYS_WIDTH-1:0] cam_mshr_way_S1,
+    input wire [`MSG_SRC_CHIPID_WIDTH-1:0] cam_mshr_src_chipid_S1,
+    input wire [`MSG_SRC_X_WIDTH-1:0] cam_mshr_src_x_S1,
+    input wire [`MSG_SRC_Y_WIDTH-1:0] cam_mshr_src_y_S1,
+    input wire [`MSG_SRC_FBITS_WIDTH-1:0] cam_mshr_src_fbits_S1,
+    input wire [`MSG_SDID_WIDTH-1:0] cam_mshr_sdid_S1,
+    input wire [`MSG_LSID_WIDTH-1:0] cam_mshr_lsid_S1,
+    input wire [`MSG_LSID_WIDTH-1:0] cam_mshr_miss_lsid_S1,
+    input wire cam_mshr_recycled_S1,
+    //inputs from the mshr
+    input wire mshr_pending_S1,
+    input wire [`L2_MSHR_ADDR_OUT_WIDTH-1:0] pending_mshr_addr_S1,
+    input wire [`MSG_MSHRID_WIDTH-1:0] pending_mshr_mshrid_S1,
+    input wire [`L2_WAYS_WIDTH-1:0] pending_mshr_way_S1,
+    input wire [`MSG_SRC_CHIPID_WIDTH-1:0] pending_mshr_src_chipid_S1,
+    input wire [`MSG_SRC_X_WIDTH-1:0] pending_mshr_src_x_S1,
+    input wire [`MSG_SRC_Y_WIDTH-1:0] pending_mshr_src_y_S1,
+    input wire [`MSG_SRC_FBITS_WIDTH-1:0] pending_mshr_src_fbits_S1,
+    input wire [`MSG_SDID_WIDTH-1:0] pending_mshr_sdid_S1,
+    input wire [`MSG_LSID_WIDTH-1:0] pending_mshr_lsid_S1,
+    input wire [`MSG_LSID_WIDTH-1:0] pending_mshr_miss_lsid_S1,
+    input wire pending_mshr_recycled_S1,
+`endif // L2_CAM_MSHR
     input wire dis_flush_S1,
 
     //msg info from the input buffer
@@ -133,6 +161,7 @@ module l2_pipe1_dpath(
     input wire state_load_sdid_S2, 
     input wire data_clk_en_S2,
     input wire stall_real_S2,
+    input wire [`L2_AMO_ALU_OP_WIDTH-1:0] amo_alu_op_S2,
 
     //Inputs to Stage 3
 
@@ -299,6 +328,7 @@ always @ *
 begin
     if (msg_from_mshr_S1)
     begin
+`ifdef NO_L2_CAM_MSHR
         addr_S1 = mshr_addr_S1;
         mshrid_S1 = mshr_mshrid_S1;
         src_chipid_S1 = mshr_src_chipid_S1;
@@ -308,6 +338,17 @@ begin
         sdid_S1 = mshr_sdid_S1;
         lsid_S1 = mshr_lsid_S1;
         recycled_S1 = mshr_recycled_S1;
+`else
+        addr_S1 = pending_mshr_addr_S1;
+        mshrid_S1 = pending_mshr_mshrid_S1;
+        src_chipid_S1 = pending_mshr_src_chipid_S1;
+        src_x_S1 = pending_mshr_src_x_S1;
+        src_y_S1 = pending_mshr_src_y_S1;
+        src_fbits_S1 = pending_mshr_src_fbits_S1;
+        sdid_S1 = pending_mshr_sdid_S1;
+        lsid_S1 = pending_mshr_lsid_S1;
+        recycled_S1 = pending_mshr_recycled_S1;
+`endif // L2_CAM_MSHR
     end
     else
     begin
@@ -449,8 +490,14 @@ begin
         src_fbits_S2_f <= src_fbits_S1;
         sdid_S2_f <= sdid_S1;
         lsid_S2_f <= lsid_S1;
+`ifdef NO_L2_CAM_MSHR
         mshr_way_S2_f <= mshr_way_S1;
         mshr_miss_lsid_S2_f <= mshr_miss_lsid_S1;
+`else
+        // trin: ambiguous??
+        mshr_way_S2_f <= (mshr_pending_S1 == 1'b1) ? pending_mshr_way_S1 : cam_mshr_way_S1;
+        mshr_miss_lsid_S2_f <= (mshr_pending_S1 == 1'b1) ? pending_mshr_miss_lsid_S1 : cam_mshr_miss_lsid_S1;
+`endif // L2_CAM_MSHR
         atomic_read_data_S2_f <= atomic_read_data_S1_f;
         recycled_S2_f <= recycled_S1;
     end
@@ -513,6 +560,14 @@ begin
         tag_data_trans_S2 = tag_data_S2;
     end
 end
+
+wire [`L2_OWNER_BITS-1:0] flat_id_S2;
+
+xy_to_flat_id flat_id_gen(
+    .flat_id    (flat_id_S2),
+    .x_coord    (src_x_S2_f),
+    .y_coord    (src_y_S2_f)
+);
 
 
 reg [`L2_STATE_ARRAY_WIDTH-1:0] state_data_buf_S2_f;
@@ -797,7 +852,7 @@ begin
     else
     `endif
     begin
-        req_from_owner_S2 = (l2_way_state_owner_S2 == {src_y_S2_f[`L2_OWNER_XY], src_x_S2_f[`L2_OWNER_XY]});
+        req_from_owner_S2 = (l2_way_state_owner_S2 == flat_id_S2);
     end
 end
 
@@ -921,15 +976,18 @@ begin
         else    
         `endif
         begin
-            dir_data_mask_in_S2 = {{(`L2_DIR_ARRAY_WIDTH-1){1'b0}},1'b1} << {src_y_S2_f[`L2_OWNER_XY], src_x_S2_f[`L2_OWNER_XY]};
+            dir_data_mask_in_S2 = {{(`L2_DIR_ARRAY_WIDTH-1){1'b0}},1'b1} << flat_id_S2;
         end
     end 
 end
+
+
 
 reg [`L2_DATA_DATA_WIDTH-1:0] msg_data_mask_in_S2;
 reg [`L2_DATA_DATA_WIDTH-1:0] data_data_merge_S2;
 wire [`L2_DATA_ECC_PARITY_WIDTH-1:0] data_data_parity1_S2;
 wire [`L2_DATA_ECC_PARITY_WIDTH-1:0] data_data_parity2_S2;
+wire [`L2_DATA_DATA_WIDTH-1:0] amo_result_S2;
 
 always @ *
 begin
@@ -955,11 +1013,24 @@ begin
     msg_data_mask_in_S2 = {msg_data_mask_in_S2[63:0], msg_data_mask_in_S2[127:64]};
 end
 
+l2_amo_alu l2_amo_alu (
+    .amo_alu_op     (amo_alu_op_S2),
+    .address        (addr_S2_f),
+    .data_size      (data_size_S2),
+    .memory_operand (atomic_read_data_S2_f),
+    .cpu_operand    ({msg_data_S2, msg_data_S2}),
+    .amo_result     (amo_result_S2)
+);
 
 always @ *
 begin
     data_data_merge_S2 = ({msg_data_S2, msg_data_S2} & msg_data_mask_in_S2)
                        | (atomic_read_data_S2_f & ~msg_data_mask_in_S2); 
+
+    if (amo_alu_op_S2 != `L2_AMO_ALU_NOP)
+    begin
+        data_data_merge_S2 = amo_result_S2;
+    end
 end
 
 l2_data_pgen data_pgen1( 
@@ -1043,7 +1114,7 @@ begin
         else
         `endif
         begin
-            state_owner_S2 = {src_y_S2_f[`L2_OWNER_XY], src_x_S2_f[`L2_OWNER_XY]}; 
+            state_owner_S2 = flat_id_S2; // {src_y_S2_f[`L2_OWNER_XY], src_x_S2_f[`L2_OWNER_XY]}; 
         end
     end
     else if (state_owner_op_S2 == `OP_ADD)
@@ -1420,6 +1491,7 @@ end
 
 
 `ifndef SYNTHESIS
+`ifdef NO_L2_CAM_MSHR
 // monitor for checking race condition
 always @ (posedge clk) begin
     if (data_stalled_skid_buffer_en_S3_f) begin
@@ -1430,7 +1502,7 @@ always @ (posedge clk) begin
         end
     end
 end
-
+`endif // L2_CAM_MSHR
 `endif
 
 
@@ -1825,6 +1897,20 @@ begin
     end
 end
 
+wire [(`NOC_X_WIDTH-1) : 0] owner_x_S4; 
+wire [(`NOC_Y_WIDTH-1) : 0] owner_y_S4; 
+wire [(`NOC_X_WIDTH-1) : 0] sharer_x_S4; 
+wire [(`NOC_Y_WIDTH-1) : 0] sharer_y_S4; 
+flat_id_to_xy owner_xy_gen(
+    .flat_id            (l2_way_state_owner_S4_f),
+    .x_coord            (owner_x_S4),
+    .y_coord            (owner_y_S4)
+);
+flat_id_to_xy sharer_xy_gen(
+    .flat_id            (dir_sharer_S4),
+    .x_coord            (sharer_x_S4),
+    .y_coord            (sharer_y_S4)
+);
 
 always @ *
 begin
@@ -1846,10 +1932,8 @@ begin
 `else      
             msg_send_dst_chipid_S4 = my_nodeid_chipid_S4;
 `endif      
-            msg_send_dst_x_S4 = {{(`MSG_SRC_X_WIDTH - `L2_OWNER_X_WIDTH){1'b0}}, 
-                                 l2_way_state_owner_S4_f[`L2_OWNER_X]}; 
-            msg_send_dst_y_S4 = {{(`MSG_SRC_Y_WIDTH - `L2_OWNER_Y_WIDTH){1'b0}},
-                                 l2_way_state_owner_S4_f[`L2_OWNER_Y]};
+            msg_send_dst_x_S4 = owner_x_S4; 
+            msg_send_dst_y_S4 = owner_y_S4;
         end
         msg_send_dst_fbits_S4 = `NOC_FBITS_L1;
     end
@@ -1875,8 +1959,8 @@ begin
         `endif
         begin
             msg_send_dst_chipid_S4 = my_nodeid_chipid_S4;
-            msg_send_dst_x_S4 = {{(`MSG_SRC_X_WIDTH - `L2_OWNER_X_WIDTH){1'b0}}, dir_sharer_S4[`L2_OWNER_X]}; 
-            msg_send_dst_y_S4 = {{(`MSG_SRC_Y_WIDTH - `L2_OWNER_Y_WIDTH){1'b0}}, dir_sharer_S4[`L2_OWNER_Y]};
+            msg_send_dst_x_S4 = sharer_x_S4; 
+            msg_send_dst_y_S4 = sharer_y_S4;
         end
         msg_send_dst_fbits_S4 = `NOC_FBITS_L1;
     end

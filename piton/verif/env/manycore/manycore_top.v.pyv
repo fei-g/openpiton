@@ -26,7 +26,7 @@
 `include "iop.h"
 `include "cross_module.tmp.h"
 `include "ifu.tmp.h"
-`include "define.vh"
+`include "define.tmp.h"
 `include "piton_system.vh"
 
 
@@ -34,8 +34,35 @@
     from pyhplib import *
 %>
 
+`ifdef PITON_DPI
+import "DPI-C" function longint read_64b_call (input longint addr);
+import "DPI-C" function void write_64b_call (input longint addr, input longint data);
+import "DPI-C" function int drive_iob ();
+import "DPI-C" function int get_cpx_word (int index);
+import "DPI-C" function void report_pc (longint thread_pc);
+import "DPI-C" function void init_jbus_model_call(string str, int oram);
+`endif
+
 `timescale 1ps/1ps
-module cmp_top ();
+module cmp_top (
+`ifdef VERILATOR
+input reg                             core_ref_clk,
+
+input reg                             sys_rst_n,
+
+input reg                             pll_rst_n,
+
+input reg                             clk_en,
+
+input reg                             pll_bypass,
+input reg [4:0]                       pll_rangea,
+output wire                            pll_lock,
+input reg [1:0]                       clk_mux_sel,
+input reg                             async_mux,
+input                                 diag_done,
+input                                 ok_iob
+`endif
+);
 
 //////////////////////
 // Type Declarations
@@ -76,26 +103,6 @@ wire                            jtag_dataout;
 
 reg                             async_mux;
 
-wire                            chipset_mem_val;
-wire [`NOC_DATA_WIDTH-1:0]      chipset_mem_data;
-wire                            chipset_mem_rdy;
-wire                            mem_chipset_val;
-wire [`NOC_DATA_WIDTH-1:0]      mem_chipset_data;
-wire                            mem_chipset_rdy;
-
-wire                            chipset_fake_iob_val;
-wire [`NOC_DATA_WIDTH-1:0]      chipset_fake_iob_data;
-wire                            chipset_fake_iob_rdy;
-wire                            fake_iob_chipset_val;
-wire [`NOC_DATA_WIDTH-1:0]      fake_iob_chipset_data;
-wire                            fake_iob_chipset_rdy;
-
-wire                            chipset_io_val;
-wire [`NOC_DATA_WIDTH-1:0]      chipset_io_data;
-wire                            chipset_io_rdy;
-wire                            io_chipset_val;
-wire [`NOC_DATA_WIDTH-1:0]      io_chipset_data;
-wire                            io_chipset_rdy;
 
 // For simulation only, monitor stuff.  Only cross-module referenced
 // do not delete.
@@ -108,10 +115,12 @@ reg [3:0]                       stub_pass;
 // Simulated Clocks
 ////////////////////
 
+`ifndef VERILATOR
 `ifndef USE_FAKE_PLL_AND_CLKMUX
 always #5000 core_ref_clk = ~core_ref_clk;                      // 100MHz
 `else
 always #500 core_ref_clk = ~core_ref_clk;                       // 1000MHz
+`endif
 `endif
 
 `ifndef SYNC_MUX
@@ -120,6 +129,7 @@ always #1429 io_clk = ~io_clk;                                  // 350MHz
 always @ * io_clk = core_ref_clk;
 `endif
 
+`ifndef VERILATOR
 always #50000 jtag_clk = ~jtag_clk;                             // 10MHz
 
 always #2500 chipset_clk_osc_p = ~chipset_clk_osc_p;            // 200MHz
@@ -130,7 +140,7 @@ always #5000 chipset_clk_osc = ~chipset_clk_osc;                // 100MHz
 always #2500 chipset_clk = ~chipset_clk;                        // 200MHz
 
 always #3333 passthru_clk_osc_p = ~passthru_clk_osc_p;          // 150MHz
-always @ * passthru_clk_osc_n = ~passthru_clk_osc_p; 
+always @ * passthru_clk_osc_n = ~passthru_clk_osc_p;
 
 always #1429 passthru_chipset_clk_p = ~passthru_chipset_clk_p;  // 350MHz
 always @ * passthru_chipset_clk_n = ~passthru_chipset_clk_p;
@@ -138,11 +148,13 @@ always @ * passthru_chipset_clk_n = ~passthru_chipset_clk_p;
 always #1000 mem_clk = ~mem_clk;                                // 500MHz
 
 always #25000 spi_sys_clk = ~spi_sys_clk;                       // 20MHz
+`endif
 
 ////////////////////////////////////////////////////////
 // SIMULATED BOOT SEQUENCE
 ////////////////////////////////////////////////////////
 
+`ifndef VERILATOR
 initial
 begin
     // These are not referenced elsewhere in this module,
@@ -191,7 +203,7 @@ begin
     pll_rangea = 5'b00001; // 10x ref clock
     // pll_rangea = 5'b11110; // 5x ref clock
     // pll_rangea = 5'b00000; // 20x ref clock
-    
+
     // JTAG simulation currently not supported here
     jtag_modesel = 1'b1;
     jtag_datain = 1'b0;
@@ -201,19 +213,27 @@ begin
 `else
     async_mux = 1'b0;
 `endif
-    
+
     // Init JBUS model plus some ORAM stuff
     if ($test$plusargs("oram"))
     begin
+`ifndef PITON_DPI
         $init_jbus_model("mem.image", 1);
+`else // ifndef PITON_DPI
+        init_jbus_model_call("mem.image", 1);
+`endif // ifndef PITON_DPI
 `ifndef __ICARUS__
         force system.chip.ctap_oram_clk_en = 1'b1;
 `endif
     end
     else
     begin
+`ifndef PITON_DPI
         $init_jbus_model("mem.image", 0);
-    end 
+`else // ifndef PITON_DPI
+        init_jbus_model_call("mem.image", 0);
+`endif // ifndef PITON_DPI
+    end
 
 
     // Reset PLL for 100 cycles
@@ -235,14 +255,21 @@ begin
     // Wait for SRAM init
     // trin: 5000 cycles is about the lowest for 64KB L2
     // 128KB L2 requires at least 10000
-    repeat(40000)@(posedge `CHIP_INT_CLK); // trin: supports at least 512KB L2 per-tile
+    repeat(5000)@(posedge `CHIP_INT_CLK); // trin: supports at least 512KB L2 per-tile
 
     diag_done = 1'b1;
 `ifndef PITONSYS_IOCTRL
     // Signal fake IOB to send wake up packet to first tile
-    ciop_fake_iob.ok_iob = 1'b1;
+    cmp_top.system.chipset.chipset_impl.ciop_fake_iob.ok_iob = 1'b1;
 `endif // endif PITONSYS_IOCTRL
 end
+`endif
+
+`ifdef VERILATOR
+always @(posedge ok_iob) begin
+    cmp_top.system.chipset.chipset_impl.ciop_fake_iob.ok_iob = 1'b1;
+end
+`endif
 
 ////////////////////////////////////////////////////////
 // SYNTHESIZABLE SYSTEM
@@ -251,7 +278,7 @@ end
 
 system system(
 `ifndef PITON_FPGA_SYNTH
-    // I/O settings, just set to 
+    // I/O settings, just set to
     // fastest for simulation
     .chip_io_slew(1'b1),
     .chip_io_impsel(2'b11),
@@ -281,7 +308,11 @@ system system(
     .chipset_clk_osc(chipset_clk_osc),
 `endif // endif PITON_CHIPSET_DIFF_CLK
 `else // ifndef PITON_CHIPSET_CLKS_GEN
+`ifndef VERILATOR
     .chipset_clk(chipset_clk),
+`else
+    .chipset_clk(core_ref_clk),
+`endif
 `ifndef PITONSYS_NO_MC
 `ifdef PITON_FPGA_MC_DDR3
     .mc_clk(mem_clk),
@@ -330,7 +361,7 @@ system system(
 `endif  // endif PITON_NO_JTAG
 
 `ifndef PITON_NO_CHIP_BRIDGE
-    // Chip async FIFOs enable for 
+    // Chip async FIFOs enable for
     // bridign core<->io clk domain
     .async_mux(async_mux),
 `endif // endif PITON_FPGA_SYNTH
@@ -355,20 +386,12 @@ system system(
     .ddr_cs_n(),
     .ddr_dm(),
     .ddr_odt(),
-`else // ifndef PITON_FPGA_MC_DDR3
-    // Simulation "fake" DRAM interface
-    .chipset_mem_val(chipset_mem_val),
-    .chipset_mem_data(chipset_mem_data),
-    .chipset_mem_rdy(chipset_mem_rdy),
-    .mem_chipset_val(mem_chipset_val),
-    .mem_chipset_data(mem_chipset_data),
-    .mem_chipset_rdy(mem_chipset_rdy),
 `endif // endif PITON_FPGA_MC_DDR3
 `endif // endif PITONSYS_NO_MC
 
 `ifdef PITONSYS_IOCTRL
 `ifdef PITONSYS_UART
-    // UART interface for bootloading and 
+    // UART interface for bootloading and
     // serial port interface.  Currently
     // not supported in simulation
     .uart_tx(),
@@ -383,22 +406,6 @@ system system(
     .spi_clk_out(),
     .spi_cs_n(),
 `endif // endif PITONSYS_SPI
-
-`else // ifndef PITONSYS_IOCTRL
-    // Fake I/O interface emulated in PLI C calls
-    .chipset_fake_iob_val(chipset_fake_iob_val),
-    .chipset_fake_iob_data(chipset_fake_iob_data),
-    .chipset_fake_iob_rdy(chipset_fake_iob_rdy),
-    .fake_iob_chipset_val(fake_iob_chipset_val),
-    .fake_iob_chipset_data(fake_iob_chipset_data),
-    .fake_iob_chipset_rdy(fake_iob_chipset_rdy),
-
-    .chipset_io_val(chipset_io_val),
-    .chipset_io_data(chipset_io_data),
-    .chipset_io_rdy(chipset_io_rdy),
-    .io_chipset_val(io_chipset_val),
-    .io_chipset_data(io_chipset_data),
-    .io_chipset_rdy(io_chipset_rdy), 
 `endif // endif PITONSYS_IOCTRL
 
     // Switches
@@ -412,88 +419,21 @@ system system(
     .leds()
 );
 
-///////////////////////////
-// Fake Memory Controller
-///////////////////////////
-// input: noc2
-// output: noc3
-// Memory controller val/rdy interface
-`ifndef PITONSYS_NO_MC
-`ifndef PITON_FPGA_MC_DDR3
-
-fake_mem_ctrl fake_mem_ctrl(
-    .clk                (chipset_clk),
-    .rst_n              (sys_rst_n),
-    .noc_valid_in       (chipset_mem_val),
-    .noc_data_in        (chipset_mem_data),
-    .noc_ready_in       (chipset_mem_rdy),
-    .noc_valid_out      (mem_chipset_val),
-    .noc_data_out       (mem_chipset_data),
-    .noc_ready_out      (mem_chipset_rdy)
-);
-
-`endif // endif PITON_FPGA_MC_DDR3
-`endif // endif PITONSYS_NO_MC
-
-////////////////////////////////////////////////////////
-// Fake iobridge
-////////////////////////////////////////////////////////
-// input: noc1
-// output: noc2
-// Iob val/rdy interface
-`ifndef PITONSYS_IOCTRL
-
-ciop_fake_iob ciop_fake_iob(
-    .noc_in_val        (chipset_fake_iob_val),
-    .noc_in_rdy        (chipset_fake_iob_rdy),
-    .noc_in_data       (chipset_fake_iob_data),
-
-    .noc_out_val       (fake_iob_chipset_val),
-    .noc_out_rdy       (fake_iob_chipset_rdy),
-    .noc_out_data      (fake_iob_chipset_data),
-
-    <%
-        text = r'''
-        .spc0_inst_done    (`TOP_MOD.monitor.pc_cmp.spc0_inst_done),
-        .pc_w0             (`PCPATH0.fdp.pc_w),
-        '''
-
-        for i in range (NUM_TILES): # extend this later
-        #for i in range (8):
-            text2 = text;
-            text2 = text2.replace("spc0_inst_done", "spc" + `i` + "_inst_done");
-            text2 = text2.replace("pc_w0", "pc_w" + `i`);
-            text2 = text2.replace("PCPATH0", "PCPATH" + `i`);
-            print text2;
-    %>
-    .clk               (chipset_clk),
-    .rst_n             (sys_rst_n)
-//    .rst_n             (`SPARC_CORE0.reset_l)
-);
-
-`endif // endif PITONSYS_IOCTRL
-
-////////////////////////////////////////////////////////
-// I/O AXI splitter, needed for uart-hello-world.s
-////////////////////////////////////////////////////////
-
-fake_uart fake_uart (
-    .clk(chipset_clk),
-    .rst_n(sys_rst_n),
-
-    .src_uart_noc2_val(chipset_io_val),
-    .src_uart_noc2_data(chipset_io_data),
-    .src_uart_noc2_rdy(chipset_io_rdy),
-
-    .uart_dst_noc3_val(io_chipset_val),
-    .uart_dst_noc3_data(io_chipset_data),
-    .uart_dst_noc3_rdy(io_chipset_rdy)
-);
-
 ////////////////////////////////////////////////////////
 // MONITOR STUFF
 ////////////////////////////////////////////////////////
+
+
 `ifndef DISABLE_ALL_MONITORS
+
+    // this is the T1 sparc core monitor
+    monitor   monitor(
+        .clk    (`CHIP_INT_CLK),
+        .cmp_gclk  (`CHIP_INT_CLK),
+        .rst_l     (`CORE_REF0.reset_l)
+        );
+
+`ifndef MINIMAL_MONITORING
     integer j;
 
     // Tri: slam init is taken out because it's too complicated to extend to 64 cores
@@ -545,16 +485,10 @@ fake_uart fake_uart (
             print tt
     %>
 
-
+`ifndef VERILATOR
     // T1's TSO monitor, stripped of all L2 references
-    tso_mon tso_mon(`CHIP_INT_CLK, `SPARC_CORE0.reset_l);
-
-    // this is the T1 sparc core monitor
-    monitor   monitor(
-        .clk    (`CHIP_INT_CLK),
-        .cmp_gclk  (`CHIP_INT_CLK),
-        .rst_l     (`SPARC_CORE0.reset_l)
-        );
+    tso_mon tso_mon(`CHIP_INT_CLK, `CORE_REF0.reset_l);
+`endif
 
     // L15 MONITORS
     cmp_l15_messages_mon l15_messages_mon(
@@ -596,24 +530,37 @@ fake_uart fake_uart (
 //        need_sas_sparc_intf_update  = 1;
 //    end // initial begin
 
+`ifndef PITON_PICO
+`ifndef PITON_ARIANE
     sas_intf  sas_intf(/*AUTOINST*/
         // Inputs
         .clk       (`CHIP_INT_CLK),      // Templated
-        .rst_l     (`SPARC_CORE0.reset_l));       // Templated
+        .rst_l     (`CORE_REF0.reset_l));       // Templated
+`endif
+`endif
 
+`ifndef PITON_PICO
+`ifndef PITON_ARIANE
     // create sas tasks
     sas_tasks sas_tasks(/*AUTOINST*/
         // Inputs
         .clk      (`CHIP_INT_CLK),      // Templated
-        .rst_l        (`SPARC_CORE0.reset_l));       // Templated
+        .rst_l        (`CORE_REF0.reset_l));       // Templated
+`endif
+`endif
 
+`ifndef PITON_ARIANE
     // sparc pipe flow monitor
     sparc_pipe_flow sparc_pipe_flow(/*AUTOINST*/
         // Inputs
         .clk  (`CHIP_INT_CLK));         // Templated
+`endif
 
+`ifndef PITON_PICO_HET
     manycore_network_mon network_mon (`CHIP_INT_CLK);
+`endif
 
+`endif // MINIMAL_MONITORING
 `endif // DISABLE_ALL_MONITORS
     // Alexey
     // UART monitor

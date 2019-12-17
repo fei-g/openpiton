@@ -38,29 +38,6 @@ module monitor(/*AUTOARG*/
    input cmp_gclk;
    input rst_l;
 
-`ifdef MSS_SAT
-
-    integer number, num, max_cycle, cycle;
-
-    initial begin
-        number = 2;
-        num    = 0;
-        cycle  = 0;
-
-        if($value$plusargs("max_cycle=%d", max_cycle)) $display("max cycles = %d", max_cycle);
-    end // initial begin
-
-    always @(posedge clk)begin
-        cycle = cycle + 1;
-
-        if(cycle == max_cycle) begin
-            $display("%0d : Simulation -> (terminated by reaching max cycles = %0d)", $time, max_cycle);
-            $finish;
-        end
-    end
-
-`else
-
    wire  reset = ~rst_l;
    integer number, num, f_time, max_cycle, cycle;
    reg [1023:0] err;
@@ -74,7 +51,11 @@ module monitor(/*AUTOARG*/
 	num    = 0;
 	err_f  = 1;
 	bad    = 0;
+`ifndef VERILATOR
 	max_cycle = 30000;
+`else // ifndef VERILATOR
+	max_cycle = 1500000;
+`endif // ifndef VERILATOR
 	cycle  = 0;
 	if($value$plusargs("wait_cycle_to_kill=%d", number))$display("wait cycles = %d", number);
 	if($value$plusargs("max_cycle=%d", max_cycle))$display("max cycles = %d", max_cycle);
@@ -161,7 +142,7 @@ module monitor(/*AUTOARG*/
      .mul_busy_d      (`TOP_DESIGN.sparc@.ifu.ifu.swl.mul_busy_d),
      .div_busy_d      (`TOP_DESIGN.sparc@.ifu.ifu.swl.div_busy_d),
      .fp_busy_d       (`TOP_DESIGN.sparc@.ifu.ifu.swl.fp_busy_d),
-     .ifet_ue_vec_d1  (`TOP_DESIGN.sparc@.ifu.ifu.fcl.ifet_ue_vec_d1), 
+     .ifet_ue_vec_d1  (`TOP_DESIGN.sparc@.ifu.ifu.fcl.ifet_ue_vec_d1),
 `else
      .wm_imiss        (`TOP_DESIGN.sparc@.ifu.swl.wm_imiss[3:0]),
      .wm_other        (`TOP_DESIGN.sparc@.ifu.swl.wm_other[3:0]),
@@ -523,7 +504,7 @@ module monitor(/*AUTOARG*/
     .th1_sftint_15      (`TOP_DESIGN.sparc@.tlu.tlu.tdp.sftint1[15]),
     .th2_sftint_15      (`TOP_DESIGN.sparc@.tlu.tlu.tdp.sftint2[15]),
     .th3_sftint_15      (`TOP_DESIGN.sparc@.tlu.tlu.tdp.sftint3[15]),
-    .ifu_swint_g        (`TOP_DESIGN.sparc@.tlu.tlu.tcl.swint_g),         
+    .ifu_swint_g        (`TOP_DESIGN.sparc@.tlu.tlu.tcl.swint_g),
 `else
     .ifu_tlu_thrid_d		(`TOP_DESIGN.sparc@.tlu.tlu_pib.ifu_tlu_thrid_d),
     .ifu_tlu_inst_vld_m		(`TOP_DESIGN.sparc@.tlu.ifu_tlu_inst_vld_m),
@@ -673,6 +654,7 @@ module monitor(/*AUTOARG*/
 
 <%
     t = r'''
+       `ifdef RTL_SPARC0
        l_cache_mon l_cache_mon0(/*AUTOINST*/
     			    // Inputs
     			    .clk	(clk),
@@ -721,7 +703,7 @@ module monitor(/*AUTOARG*/
                   .mul_busy_d   (`SPARC_CORE0.sparc0.ifu.ifu.swl.mul_busy_d), // Templated
                   .div_busy_d   (`SPARC_CORE0.sparc0.ifu.ifu.swl.div_busy_d), // Templated
                   .fp_busy_d    (`SPARC_CORE0.sparc0.ifu.ifu.swl.fp_busy_d), // Templated
-                  .ifet_ue_vec_d1(`SPARC_CORE0.sparc0.ifu.ifu.fcl.ifet_ue_vec_d1), // Templated 
+                  .ifet_ue_vec_d1(`SPARC_CORE0.sparc0.ifu.ifu.fcl.ifet_ue_vec_d1), // Templated
     `else
     			  .wm_imiss	(`SPARC_CORE0.sparc0.ifu.swl.wm_imiss[3:0]), // Templated
     			  .wm_other	(`SPARC_CORE0.sparc0.ifu.swl.wm_other[3:0]), // Templated
@@ -745,7 +727,7 @@ module monitor(/*AUTOARG*/
     			  .div_busy_d	(`SPARC_CORE0.sparc0.ifu.swl.div_busy_d), // Templated
     			  .fp_busy_d	(`SPARC_CORE0.sparc0.ifu.swl.fp_busy_d), // Templated
     			  .ifet_ue_vec_d1(`SPARC_CORE0.sparc0.ifu.fcl.ifet_ue_vec_d1), // Templated
-    `endif                  
+    `endif
     			  .cpu_id	(10'd0));			 // Templated
        exu_mon exu_mon0(/*AUTOINST*/
     		    // Inputs
@@ -765,7 +747,7 @@ module monitor(/*AUTOARG*/
         `ifndef RTL_SPU
                 .clk        (`SPARC_CORE0.sparc0.tlu.tlu.rclk), // Templated
                 .grst_l     (`SPARC_CORE0.sparc0.tlu.tlu.grst_l), // Templated
-                .rst_l      (`SPARC_CORE0.sparc0.tlu.tlu.tcl.tlu_rst_l), // Templated 
+                .rst_l      (`SPARC_CORE0.sparc0.tlu.tlu.tcl.tlu_rst_l), // Templated
         `else
     		    .clk		(`SPARC_CORE0.sparc0.tlu.rclk), // Templated
     		    .grst_l		(`SPARC_CORE0.sparc0.tlu.grst_l), // Templated
@@ -824,7 +806,7 @@ module monitor(/*AUTOARG*/
     			.tlu_gl_lvl1	(`SPARC_CORE0.sparc0.tlu.tlu_hyperv.gl_lvl1),
     			.tlu_gl_lvl2	(`SPARC_CORE0.sparc0.tlu.tlu_hyperv.gl_lvl2),
     			.tlu_gl_lvl3	(`SPARC_CORE0.sparc0.tlu.tlu_hyperv.gl_lvl3),
-        `endif	
+        `endif
                 .exu_gl_lvl0	(`SPARC_CORE0.sparc0.exu.exu.rml.agp_thr0_next),
     			.exu_gl_lvl1	(`SPARC_CORE0.sparc0.exu.exu.rml.agp_thr1_next),
     			.exu_gl_lvl2	(`SPARC_CORE0.sparc0.exu.exu.rml.agp_thr2_next),
@@ -982,7 +964,7 @@ module monitor(/*AUTOARG*/
                 .tlu_itlb_dmp_vld_g (`SPARC_CORE0.sparc0.tlu.tlu_itlb_dmp_vld_g), // Templated
                 .tlu_itlb_tte_tag_w2(`SPARC_CORE0.sparc0.tlu.tlu_itlb_tte_tag_w2), // Templated
                 .tlu_itlb_tte_data_w2(`SPARC_CORE0.sparc0.tlu.tlu_itlb_tte_data_w2), // Templated
-                .itlb_wr_vld    (`SPARC_CORE0.sparc0.ifu.ifu.itlb.tlb_wr_vld), // Templated 
+                .itlb_wr_vld    (`SPARC_CORE0.sparc0.ifu.ifu.itlb.tlb_wr_vld), // Templated
                 .dtlb_wr_vld    (`SPARC_CORE0.sparc0.lsu.lsu.dtlb.tlb_wr_vld), // Templated
                 .tlu_tlb_access_en_l_d1(`SPARC_CORE0.sparc0.tlu.tlu.mmu_dp.tlu_tlb_access_en_l_d1), // Templated
                 .tlu_lng_ltncy_en_l (`SPARC_CORE0.sparc0.tlu.tlu.mmu_dp.tlu_lng_ltncy_en_l)); // Templated
@@ -1066,7 +1048,7 @@ module monitor(/*AUTOARG*/
     			    .nukeint	(`SPARC_CORE0.sparc0.ifu.ifu.tlu_ifu_nukeint_i2), // Templated
     			    .resumint	(`SPARC_CORE0.sparc0.ifu.ifu.tlu_ifu_resumint_i2), // Templated
     			    .rstint	(`SPARC_CORE0.sparc0.ifu.ifu.tlu_ifu_rstint_i2), // Templated
-    `endif                    
+    `endif
     			    .coreid	(10'd0));			 // Templated
        mask_mon mask_mon0(/*AUTOINST*/
     		      // Inputs
@@ -1196,7 +1178,9 @@ module monitor(/*AUTOARG*/
         if (`SPARC_CORE0.sparc0.lsu.lsu.qctl2.dfq_vld_en && (`SPARC_CORE0.sparc0.lsu.lsu.qctl2.lsu_cpu_inv_data_val === 1'bx))
         begin
             $display("%d : Simulation -> FAIL(%0s)", $time, "TILE0 lsu received X invalidation");
+            `ifndef VERILATOR
             repeat(5)@(posedge clk);
+            `endif
             `MONITOR_PATH.fail("TILE0 lsu received X invalidation");
         end
 
@@ -1206,13 +1190,15 @@ module monitor(/*AUTOARG*/
             if (|`SPARC_CORE0.sparc0.lsu.lsu.qctl2.lsu_cpu_inv_data_way === 1'bx)
             begin
                 $display("%d : Simulation -> FAIL(%0s)", $time, "TILE0 lsu received invalid way invalidation");
+                `ifndef VERILATOR
                 repeat(5)@(posedge clk);
+                `endif
                 `MONITOR_PATH.fail("TILE0 lsu received invalid way invalidation");
             end
         end
     end
 
-    
+
 
         //   cmp_pcxandcpx cmp_pcxandcpx0(/* AUTOINST*/
         //				// Inputs
@@ -1221,6 +1207,7 @@ module monitor(/*AUTOARG*/
         //				.spc_pcx_data_pa(`PCXPATH0.spc_pcx_data_pa[`PCX_WIDTH-1:0]),
         //				.cpx_spc_data_cx(`PCXPATH0.cpx_spc_data_cx2[`CPX_WIDTH-1:0]),
         //				.cpu	(0));
+       `endif
     '''
     patterns = ["RTL_SPARC0", "mon0", "PATH0", "SPARC_CORE0", "chk0", "10'd0"];
     tt = ReplicatePattern(t, patterns);
@@ -1230,11 +1217,15 @@ module monitor(/*AUTOARG*/
 
 
 `ifdef RTL_SPARC0
+`ifndef VERILATOR
    tso_mon tso_mon0( .clk       (clk), .rst_l   (rst_l));
+`endif
 
    lsu_mon lsu_mon0( .clk       (clk), .rst_l   (rst_l));
    lsu_mon2 lsu_mon2( .clk       (clk), .rst_l   (rst_l));
+`ifndef VERILATOR
    multicycle_mon multicycle_mon(.clk       (clk), .rst_l   (rst_l));
+`endif
 
    `ifdef RTL_IOBDG
    ctu_mon ctu_mon0( );
@@ -1292,10 +1283,19 @@ module monitor(/*AUTOARG*/
 
 `ifdef RTL_SPARC0
    //monitor good trap and bad trap.
-   pc_cmp              pc_cmp(clk, rst_l); // Sumti - Shifting it back to clk, sas race with +fast_boot.
+   pc_cmp pc_cmp(clk, rst_l); // Sumti - Shifting it back to clk, sas race with +fast_boot.
 //dump cache
 `endif // ifdef RTL_SPARC0
 
+`ifdef RTL_PICO0
+   //monitor good trap and bad trap.
+   pc_cmp pc_cmp(clk, rst_l); // Sumti - Shifting it back to clk, sas race with +fast_boot.
+`endif // ifdef RTL_PICO0
+
+`ifdef RTL_ARIANE0
+   //monitor good trap and bad trap.
+   pc_cmp pc_cmp(clk, rst_l); // Sumti - Shifting it back to clk, sas race with +fast_boot.
+`endif // ifdef RTL_ARIANE0
 
 	// dump_cache dump_cache();
 
@@ -1322,8 +1322,6 @@ module monitor(/*AUTOARG*/
         %>
 
 	`endif  // ifdef DRAM_SAT
-
-`endif // ifdef MSS_SAT
 
 endmodule
 // Local Variables:

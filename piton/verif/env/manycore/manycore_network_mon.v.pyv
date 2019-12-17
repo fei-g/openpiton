@@ -43,6 +43,8 @@ module manycore_network_mon (
     input wire clk
     );
 `ifndef DISABLE_ALL_MONITORS
+`ifndef DISABLE_NETWORK_MONITOR
+`ifndef MINIMAL_MONITORING
 `ifndef XBAR_CONFIG
 // check boundary communication
 // There are two parts to the check
@@ -203,7 +205,9 @@ begin
                     if (boundary_err == 1)
                     begin
                         $display("%d : Simulation -> FAIL. network_mon: packet out of valid bound from tile_%0d_%0d_out_%0s_noc%0d", $time, error_y, error_x, error_dir, error_noc);
+                        `ifndef VERILATOR
                         repeat(5)@(posedge clk);
+                        `endif
                         `MONITOR_PATH.fail("network_mon: network_mon: packet going out of valid bound");
                     end
                     '''
@@ -215,7 +219,7 @@ begin
                 check_up = False;
                 check_down = False;
                 # Check for valid signal from non-existent tiles to any other tiles.
-                # For example, if there is only tile 0_0 and 0_1, then 
+                # For example, if there is only tile 0_0 and 0_1, then
                 print 'boundary_err = 0;'
                 print "`ifndef RTL_SPARC%d" % flatid
                 for nocid in [1,2,3]:
@@ -278,7 +282,9 @@ begin
                     if (boundary_err == 1)
                     begin
                         $display("%d : Simulation -> FAIL. network_mon: packet from invalid tile_%0d_%0d_out_%0s_noc%0d", $time, error_y, error_x, error_dir, error_noc);
+                        `ifndef VERILATOR
                         repeat(5)@(posedge clk);
+                        `endif
                         `MONITOR_PATH.fail("network_mon: network_mon: packet from invalid tile");
                     end
                     '''
@@ -294,6 +300,8 @@ begin
     //     `MONITOR_PATH.fail("network_mon: network_mon: packet going out of bound");
     // end
 end
+`endif
+`endif
 `endif
 `endif // DISABLE_ALL_MONITORS
 endmodule

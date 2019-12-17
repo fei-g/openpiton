@@ -59,6 +59,15 @@ fi
 
 #export LM_LICENSE_FILE=
 
+# define vivado version if it deviates from the default
+#export VIVADO_BIN="vivado"
+
+# Please define MODELSIM_HOME only if you have MODELSIM, otherwise comment it out.
+
+#export MODELSIM_VERSION="-10.6b -64"
+#export MODELSIM_HOME=
+
+
 # New variables (fixed or based on $DV_ROOT)
 
 export TRE_ENTRY=/
@@ -80,7 +89,7 @@ export PERL_CMD="/usr/bin/perl"
 
 # Set path
 
-NEWPATH=".:$DV_ROOT/tools/bin"
+NEWPATH="$DV_ROOT/tools/bin"
 
 if [ ! -z $VCS_HOME ]
 then
@@ -114,14 +123,16 @@ fi
 
 export PATH="$NEWPATH:$PATH"
 
-# Set a couple of paths for MacOS
+# Set a path for MacOS
 OS=`uname -s`
+CPU=`uname -m`
 if [ $OS = "Darwin" ]
 then
-CPU=`uname -m`
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$DV_ROOT/tools/$OS/$CPU/lib
-export M4PATH=$DV_ROOT/tools/$OS/$CPU/lib/m4
 fi
+
+# If we're packaging our m4+gmp then this M4PATH needs set
+export M4PATH=$DV_ROOT/tools/$OS/$CPU/lib/m4
 
 # Set library path for the new goldfinger
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DV_ROOT/tools/src/goldfinger/lib

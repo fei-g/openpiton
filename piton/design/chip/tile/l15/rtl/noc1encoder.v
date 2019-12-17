@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //==================================================================================================
 //  Filename      : noc1encoder.v
 //  Created On    : 2014-02-05 20:06:27
-//  Last Modified : 2015-01-22 17:28:23
 //  Revision      :
 //  Author        : Tri Nguyen
 //  Company       : Princeton University
@@ -39,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //==================================================================================================
 `include "l15.tmp.h"
-`include "define.vh"
+`include "define.tmp.h"
 
 `ifdef DEFAULT_NETTYPE_NONE
 `default_nettype none
@@ -360,6 +359,60 @@ begin
          msg_dest_l2_ypos = req_data0[63] ? msg_dest_l2_ypos_new : msg_dest_l2_ypos_compat; 
          msg_dest_chipid  = req_data0[63] ? req_data0[`NOC_CHIPID_WIDTH+`NOC_Y_WIDTH+`NOC_X_WIDTH+17:`NOC_Y_WIDTH+`NOC_X_WIDTH+18] : `NOC_CHIPID_WIDTH'b0;
       end
+      `L15_NOC1_REQTYPE_LR_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_LR_REQ;
+         msg_length = 2; // 2 extra headers
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+      end
+      `L15_NOC1_REQTYPE_AMO_ADD_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_ADD_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
+      `L15_NOC1_REQTYPE_AMO_AND_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_AND_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
+      `L15_NOC1_REQTYPE_AMO_OR_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_OR_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
+      `L15_NOC1_REQTYPE_AMO_XOR_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_XOR_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
+      `L15_NOC1_REQTYPE_AMO_MAX_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_MAX_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
+      `L15_NOC1_REQTYPE_AMO_MAXU_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_MAXU_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
+      `L15_NOC1_REQTYPE_AMO_MIN_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_MIN_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
+      `L15_NOC1_REQTYPE_AMO_MINU_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_AMO_MINU_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 3; // 2 extra headers + 1 swap data
+      end
    endcase
 end
 
@@ -499,8 +552,15 @@ begin
          req_type == `L15_NOC1_REQTYPE_ST_UPGRADE_REQUEST ||
          req_type == `L15_NOC1_REQTYPE_ST_FILL_REQUEST ||
          req_type == `L15_NOC1_REQTYPE_CAS_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_SWAP_REQUEST
-         )
+         req_type == `L15_NOC1_REQTYPE_SWAP_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_ADD_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_AND_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_OR_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_XOR_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_MAX_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_MAXU_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_MIN_REQUEST ||
+         req_type == `L15_NOC1_REQTYPE_AMO_MINU_REQUEST)
       begin
          l15_dmbr_l1missIn = 1'b1;
          l15_dmbr_l1missTag = msg_mshrid[`DMBR_TAG_WIDTH-1:0]; // TODO: might be wrong please contact Tri

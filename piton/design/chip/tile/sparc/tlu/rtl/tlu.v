@@ -36,9 +36,10 @@
 `include	"sys.h" // system level definition file which contains the
 			// time scale definition
 
+`include        "lsu.tmp.h"
 `include        "tlu.h"
 
-`include        "define.vh"
+`include        "define.tmp.h"
 ////////////////////////////////////////////////////////////////////////
 // Local header file includes / local defines
 ////////////////////////////////////////////////////////////////////////
@@ -80,9 +81,9 @@ module tlu (/*AUTOARG*/
    `endif
    // tlu_lsu_priv_trap_w,
    // Inputs
-   se, arst_l, grst_l, sehold, 
+   se, arst_l, grst_l, sehold,
    // mem_write_disable, // rst_tri_en,
-   // mux_drive_disable, 
+   // mux_drive_disable,
    lsu_tlu_wtchpt_trp_g, ifu_tlu_flush_fd3_w,
    lsu_tlu_ttype_vld_m2, ifu_tlu_flush_fd_w, ifu_tlu_flush_fd2_w,
    lsu_tlu_ttype_m2, lsu_tlu_tlb_st_inst_m, // lsu_tlu_tte_ebit_g,

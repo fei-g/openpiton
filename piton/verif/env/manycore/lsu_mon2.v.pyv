@@ -28,14 +28,14 @@
 // 		pal -r -o lsu_mon2.v lsu_mon2.vpal
 ////////////////////////////////////////////////////////
 
+`include "define.tmp.h"
 `include "cross_module.tmp.h"
 `include "sys.h"
 `include "iop.h"
 
+
 <%
     from pyhplib import *
-
-    print "`define NUM_TILES %d" % NUM_TILES;
 %>
 
 module lsu_mon2 (clk, rst_l);
@@ -65,6 +65,7 @@ end
 
 // Reset code requested by Rudi
 // This is to turn off monitor during reset
+`ifndef VERILATOR
 reg     lsu_mon_rst_l;
 initial lsu_mon_rst_l = 0 ;
 
@@ -74,6 +75,9 @@ always @(posedge clk) begin
   while (rst_l !== 1) @(posedge clk) ;
   lsu_mon_rst_l = 1 ;
 end
+`else // ifndef VERILATOR
+wire lsu_mon_rst_l = rst_l;
+`endif // ifndef VERILATOR
 // End Reset code requested by Rudi
 
 // Enumerate monitors for all 8 cores
@@ -617,14 +621,20 @@ begin
 `else
     if (~`SPARC_CORE0.sparc0.ifu.fcl.running_e) begin
 `endif
+      `ifndef VERILATOR
       force `SPARC_CORE0.sparc0.exu_lsu_ldst_va_e = 48'bx;
+      `else // ifndef VERILATOR
+      `SPARC_CORE0.sparc0.exu_lsu_ldst_va_e = 48'bx;
+      `endif // ifndef VERILATOR
     end
 `ifndef RTL_SPU
     if (`SPARC_CORE0.sparc0.ifu.ifu.fcl.running_e) begin
 `else
     if (`SPARC_CORE0.sparc0.ifu.fcl.running_e) begin
 `endif
+      `ifndef VERILATOR
       release `SPARC_CORE0.sparc0.exu_lsu_ldst_va_e;
+      `endif // ifndef VERILATOR
     end
   end
 end
@@ -1267,7 +1277,7 @@ reg  [3:0] spc0_strm_stxa_tid_decode;
     assign spc0_dva_rd_en_e[11:8]        = {4{(`SPARC_CORE0.sparc0.lsu.exu_lsu_early_va_e[5:4] == 2'b10)}};
     assign spc0_dva_rd_en_e[7:4]         = {4{(`SPARC_CORE0.sparc0.lsu.exu_lsu_early_va_e[5:4] == 2'b01)}};
     assign spc0_dva_rd_en_e[3:0]         = {4{(`SPARC_CORE0.sparc0.lsu.exu_lsu_early_va_e[5:4] == 2'b00)}};
-    
+
     assign spc0_dva_vld_m_expanded[`L1D_VAL_ARRAY_HI:0] = {4{`SPARC_CORE0.sparc0.lsu.dva_vld_m[`L1D_WAY_MASK]}};
 `endif
 
@@ -1505,7 +1515,7 @@ reg  [3:0] spc0_strm_stxa_tid_decode;
     assign spc0_pick_destbusy_unqual[0]  = ~|(spc0_pre_qwr[4:0] & `SPARC_CORE0.sparc0.lsu.lsu.qctl1.ld0_l2bnk_dest[4:0]);
 
     assign spc0_mcycle_mask_qwr_d1[4:0] = `SPARC_CORE0.sparc0.lsu.lsu.qctl1.mcycle_mask_qwr_d1[4:0];
-    
+
     assign spc0_pick_atompend_unqual[11] = ~|(~spc0_mcycle_mask_qwr_d1[4:0] & `SPARC_CORE0.sparc0.lsu.lsu.qctl1.strm_l2bnk_dest[4:0]);
     assign spc0_pick_atompend_unqual[10] = ~|(~spc0_mcycle_mask_qwr_d1[4:0] & `SPARC_CORE0.sparc0.lsu.lsu.qctl1.fpop_l2bnk_dest[4:0]);
     assign spc0_pick_atompend_unqual[9]  = ~|(~spc0_mcycle_mask_qwr_d1[4:0] & `SPARC_CORE0.sparc0.lsu.lsu.qctl1.intrpt_l2bnk_dest[4:0]);
@@ -1599,7 +1609,7 @@ reg  [3:0] spc0_strm_stxa_tid_decode;
     assign spc0_strm_stxa_g[0] = `SPARC_CORE0.sparc0.lsu.lsu.dctl.st_inst_vld_g &
                                     `SPARC_CORE0.sparc0.lsu.lsu.dctl.lsu_alt_space_g &
                                     `SPARC_CORE0.sparc0.lsu.lsu.dctl.stxa_stall_asi_g &
-                                    (`SPARC_CORE0.sparc0.lsu.lsu.qctl1.thrid_g == 2'b00); 
+                                    (`SPARC_CORE0.sparc0.lsu.lsu.qctl1.thrid_g == 2'b00);
 `else
     assign spc0_strm_stxa_g[3] = `SPARC_CORE0.sparc0.lsu.dctl.st_inst_vld_g &
                                     `SPARC_CORE0.sparc0.lsu.dctl.lsu_alt_space_g &
@@ -1682,7 +1692,7 @@ reg  [3:0] spc0_strm_stxa_tid_decode;
 `else
         spc0_lsu_way_hit_or_w2        <= `SPARC_CORE0.sparc0.lsu.dctl.lsu_way_hit_or;
         spc0_ncache_pcx_rq_w2         <= `SPARC_CORE0.sparc0.lsu.dctl.ncache_pcx_rq_g;
-    
+
         spc0_stb_ld_partial_raw_w2    <= `SPARC_CORE0.sparc0.lsu.stb_ld_partial_raw;
         spc0_stb_ld_partial_raw_w3    <= spc0_stb_ld_partial_raw_w2;
         spc0_stb_ld_partial_raw_w4    <= spc0_stb_ld_partial_raw_w3;
@@ -2423,12 +2433,14 @@ wire [`NUM_TILES-1:0] cpx_spc_data_cx2_Iinv;
 ack_evict_decode cpx_spc_data_cx2_decode(
 <%
 text = '''
-        .in0   (`SPARC_CORE0.cpx_spc0_data_cx2[127:0]),'''
-pattern = ["CORE0", "in0"]
+        `ifdef RTL_SPARC0
+        .in0   (`SPARC_CORE0.cpx_spc0_data_cx2[127:0]),
+        `endif'''
+pattern = ["RTL_SPARC0", "CORE0", "in0"]
 tt = ReplicatePattern(text, pattern)
 print tt
 %>
-    .local (cpx_spc_data_cx2_local),
+    .local_o (cpx_spc_data_cx2_local),
     .Dinv  (cpx_spc_data_cx2_Dinv),
     .Iinv  (cpx_spc_data_cx2_Iinv)
 );
@@ -2442,16 +2454,18 @@ wire [`NUM_TILES-1:0] dfq_byp_mx_data_Iinv;
 ack_evict_decode dfq_byp_mx_data_decode(
 <%
 text = '''
+    `ifdef RTL_SPARC0
     `ifndef RTL_SPU
     .in0   (`SPARC_CORE0.sparc0.lsu.lsu.qdp2.dfq_byp_mx_data[127:0]),
     `else
     .in0   (`SPARC_CORE0.sparc0.lsu.qdp2.dfq_byp_mx_data[127:0]),
+    `endif
     `endif'''
-pattern = ["CORE0", "in0"]
+pattern = ["RTL_SPARC0", "CORE0", "in0"]
 tt = ReplicatePattern(text, pattern)
 print tt
 %>
-    .local (dfq_byp_mx_data_local),
+    .local_o (dfq_byp_mx_data_local),
     .Dinv  (dfq_byp_mx_data_Dinv),
     .Iinv  (dfq_byp_mx_data_Iinv)
 );
@@ -2465,16 +2479,18 @@ wire [`NUM_TILES-1:0] dfq_cpx_raw_wdata_Iinv;
 ack_evict_decode dfq_cpx_raw_wdata_decode(
 <%
 text = '''
+    `ifdef RTL_SPARC0
     `ifndef RTL_SPU
     .in0   (`SPARC_CORE0.sparc0.lsu.lsu.qdp2.dfq_cpx_raw_wdata[127:0]),
     `else
     .in0   (`SPARC_CORE0.sparc0.lsu.qdp2.dfq_cpx_raw_wdata[127:0]),
+    `endif
     `endif'''
-pattern = ["CORE0", "in0"]
+pattern = ["RTL_SPARC0", "CORE0", "in0"]
 tt = ReplicatePattern(text, pattern)
 print tt
 %>
-    .local (dfq_cpx_raw_wdata_local),
+    .local_o (dfq_cpx_raw_wdata_local),
     .Dinv  (dfq_cpx_raw_wdata_Dinv),
     .Iinv  (dfq_cpx_raw_wdata_Iinv)
 );
@@ -2500,16 +2516,18 @@ end
 ack_evict_decode dfq_byp_ff_data_decode(
 <%
 text = '''
+    `ifdef RTL_SPARC0
     `ifndef RTL_SPU
     .in0   (`SPARC_CORE0.sparc0.lsu.lsu.qdp2.dfq_byp_ff_data[127:0]),
     `else
     .in0   (`SPARC_CORE0.sparc0.lsu.qdp2.dfq_byp_ff_data[127:0]),
+    `endif
     `endif'''
-pattern = ["CORE0", "in0"]
+pattern = ["RTL_SPARC0", "CORE0", "in0"]
 tt = ReplicatePattern(text, pattern)
 print tt
 %>
-    .local (dfq_byp_ff_data_local),
+    .local_o (dfq_byp_ff_data_local),
     .Dinv  (dfq_byp_ff_data_Dinv),
     .Iinv  (dfq_byp_ff_data_Iinv)
 );
@@ -2525,30 +2543,37 @@ endmodule
 
 module ack_evict_decode(<%
 
-text = '''in0, '''
-pattern = ["in0"]
+text = '''
+        `ifdef RTL_SPARC0
+        in0,
+        `endif'''
+pattern = ["RTL_SPARC0", "in0"]
 tt = ReplicatePattern(text, pattern)
 print tt
 
-%>local, Dinv, Iinv);
+%>local_o, Dinv, Iinv);
 
 <%
 text = '''
-input [127:0] in0;'''
-pattern = ["in0"]
+        `ifdef RTL_SPARC0
+        input [127:0] in0;
+        `endif'''
+pattern = ["RTL_SPARC0", "in0"]
 tt = ReplicatePattern(text, pattern)
 print tt
 %>
-output [`NUM_TILES-1:0]  local;
+output [`NUM_TILES-1:0]  local_o;
 output [`NUM_TILES-1:0]  Dinv;
 output [`NUM_TILES-1:0]  Iinv;
 
 <%
 text = '''
-    assign local[0] = (in0[`CPX_CPUID_HI:`CPX_CPUID_LO] == 3'h0);
+    `ifdef RTL_SPARC0
+    assign local_o[0] = (in0[`CPX_CPUID_HI:`CPX_CPUID_LO] == 3'h0);
     assign Dinv[0]  = in0[0]  | in0[32] | in0[56] | in0[88] ;
-    assign Iinv[0]  = in0[1]  | in0[57] ;'''
-pattern = ["local[0", "Dinv[0", "Iinv[0", "in0"]
+    assign Iinv[0]  = in0[1]  | in0[57] ;
+    `endif'''
+pattern = ["RTL_SPARC0", "local_o[0", "Dinv[0", "Iinv[0", "in0"]
 tt = ReplicatePattern(text, pattern)
 print tt
 %>
@@ -2571,5 +2596,4 @@ wire   [3:0]  count;
     assign out[2] = (count > 4'h2);
 
 endmodule
-
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Copyright (c) 2015 Princeton University
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 #     * Neither the name of Princeton University nor the
 #       names of its contributors may be used to endorse or promote products
 #       derived from this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY PRINCETON UNIVERSITY "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -47,58 +47,85 @@ DESIGN_BLOCK_LIST = os.path.join(DV_ROOT, "tools/src/proto/block.list")
 MAP_MODULE_NAME = "storage_addr_trans.v"
 NOC_PAYLOAD_WIDTH = 512
 STORAGE_BLOCK_BIT_WIDTH         =   {   "ddr":  {   "vc707":512,
+                                                    "vcu118":512,
+                                                    "xupp3r":512,
                                                     "nexys4ddr":128,
                                                     "genesys2":256,
-                                                    "nexysVideo":128
+                                                    "nexysVideo":128,
+                                                    "f1":512
                                                 },
                                         "bram": {   "vc707":512,
+                                                    "vcu118":512,
+                                                    "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
                                                     "nexysVideo":512,
-                                                    "piton_board":512
+                                                    "piton_board":512,
+                                                    "f1":512
                                                 },
                                         "dmw":  {   "vc707":512,
+                                                    "vcu118":512,
+                                                    "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
                                                     "nexysVideo":512,
-                                                    "piton_board":512
+                                                    "piton_board":512,
+                                                    "f1":512
                                                 }
                                     }
 
 STORAGE_ADDRESSABLE_BIT_WIDTH   =   {   "ddr":  {   "vc707":64,
+                                                    "vcu118":64,
+                                                    "xupp3r":64,
                                                     "nexys4ddr":16,
                                                     "genesys2":32,
-                                                    "nexysVideo":16
+                                                    "nexysVideo":16,
+                                                    "f1":64
                                                 },
                                         "bram": {   "vc707":512,
+                                                    "vcu118":512,
+                                                    "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
                                                     "nexysVideo":512,
-                                                    "piton_board":512
+                                                    "piton_board":512,
+                                                    "f1":512
                                                 },
-                                        "dmw": {   "vc707":512,
+                                        "dmw": {    "vc707":512,
+                                                    "vcu118":512,
+                                                    "xupp3r":512,
                                                     "nexys4ddr":512,
                                                     "genesys2":512,
                                                     "nexysVideo":512,
-                                                    "piton_board":512
+                                                    "piton_board":512,
+                                                    "f1":512
                                                 }
                                     }
 
 STORAGE_BIT_SIZE                =   {   "ddr":  {   "vc707":8*2**30,
+                                                    "vcu118":2*8*2**30,
+                                                    "xupp3r":32*8*2**30,
                                                     "nexys4ddr":8*128*2**20,
                                                     "genesys2":8*2**30,
-                                                    "nexysVideo":8*512*2**20
+                                                    "nexysVideo":8*512*2**20,
+                                                    "f1":8*4*2**30
                                                 },
                                         "bram": {   "vc707":16384*512,
+                                                    "vcu118":16384*512,
+                                                    "xupp3r":16384*512,
                                                     "nexys4ddr":16384*512,
                                                     "genesys2":16384*512,
                                                     "nexysVideo":16384*512,
-                                                    "piton_board":256*512
+                                                    "piton_board":256*512,
+                                                    "f1":256*512
                                                 },
                                         "dmw":  {   "vc707":8*2**30,
+                                                    "vcu118":2*8*2**30,
+                                                    "xupp3r":32*8*2**30,
                                                     "nexys4ddr":8*128*2**20,
                                                     "genesys2":8*2**30,
-                                                    "nexysVideo":8*512*2**20
+                                                    "nexysVideo":8*512*2**20,
+                                                    "f1":8*4*2**30
                                                 }
                                     }
 DW_BIT_SIZE     = 64
@@ -166,20 +193,29 @@ def calcUARTLatch(design_data, board):
 # Name:     isTranslatorOK
 # Input:    addr_data_map   -   addr:data map for a test to check
 #           flog            -   file descriptor for loggin
+#           ariane          -   if true, this will only consider the first
+#                               entry. if flase, the first entry will be skipped
 # Output:   True
-# Description: Tests if $DV_ROOT/chipset/rtl/storage_addr_trans.v
+# Description: Tests if $DV_ROOT/chipset/rtl/storage_addr_trans.tmp.v
 #              can be used for mapping of addr:map address
 ############################################################################
-def isTranslatorOK(addr_data_map, flog):
-    map_loc = DV_ROOT + "/design/chipset/rtl/storage_addr_trans_unified.v"
+def isTranslatorOK(addr_data_map, flog, ariane):
+    map_loc = DV_ROOT + "/design/chipset/rtl/storage_addr_trans_unified.tmp.v"
     fname = os.path.join(map_loc)
     f = open(fname, 'r')
 
     trans_sections = list()
+    cnt = 0
     for line in f:
         m = re.search(r"in_section.*>=\s+64'h([0-9a-fA-F]+).*<\s+64'h([0-9a-fA-F]+)", line)
         if m != None:
-            trans_sections.append((int(m.group(1), 16), int(m.group(2), 16)))
+            if ariane:
+                if cnt == 0:
+                    trans_sections.append((int(m.group(1), 16), int(m.group(2), 16)))
+            else:
+                if cnt >= 0:
+                    trans_sections.append((int(m.group(1), 16), int(m.group(2), 16)))
+            cnt+=1
 
     f.close()
 
@@ -197,22 +233,22 @@ def isTranslatorOK(addr_data_map, flog):
             print >> flog, "ERROR: Address %s is not mapped in %s" % (hex(addr), map_loc)
             print >> sys.stderr, "ERROR: Address %s is not mapped in %s" % (hex(addr), map_loc)
             return False
- 
+
     return True
 
 
 def getTestList(fname, flog, ustr_files=False):
     f = open(fname, 'r')
-    
+
     test_list = list()
-    suff = "ustr" if ustr_files else "s"
+    suff = "ustr" if ustr_files else "([s|S|c]|riscv)"
     for line in f:
         mstr = "([0-9a-zA-Z_-]+\.%s)" % suff
         m = re.search(mstr, line)
         if m != None:
             tname = m.group(1)
             test_list.append(tname)
-
+            print tname
     f.close()
     return test_list
 
@@ -224,7 +260,7 @@ def getTestList(fname, flog, ustr_files=False):
 # Output:   rv              - return value from midas
 # Description: compile assebly test using midas tool
 ############################################################################
-def runMidas(tname, uart_div_latch, flog, midas_args=None):
+def runMidas(tname, uart_div_latch, flog, midas_args=None, coreType="sparc", precompiled=False, x_tiles=1, y_tiles=1):
     cmd = ""
     if midas_args is None:
         cmd = "sims -sys=manycore -novcs_build -midas_only \
@@ -233,8 +269,22 @@ def runMidas(tname, uart_div_latch, flog, midas_args=None):
        	cmd = "sims -sys=manycore -novcs_build -midas_only \
               -midas_args='-DUART_DIV_LATCH=0x%x -DFPGA_HW -DCIOP -DNO_SLAN_INIT_SPC %s' %s" % \
               (uart_div_latch, midas_args, tname)
-    rv = subprocess.call(shlex.split(cmd), stdout=flog, stderr=flog)
 
+    if coreType == "ariane":
+        # specify uart_dmw in order to include load instructions for PASS/FAIL
+        cmd += " -ariane -uart_dmw -x_tiles=%d -y_tiles=%d" % (int(x_tiles), int(y_tiles))
+    elif coreType == "sparc":
+        # nothing to add at the moment
+        pass
+    else:
+        raise Exception("unknown core type " + coreType)
+
+    if precompiled:
+        # used to run precompiled riscv tests
+        cmd += " -precompiled"
+
+    rv = subprocess.call(shlex.split(cmd), stdout=flog, stderr=flog)
+    print cmd
     return rv
 
 
@@ -299,7 +349,7 @@ def buildProjectSuccess(log_dir):
     return True
 
 
-def implFlowSuccess(log_dir, run_dir):    
+def implFlowSuccess(log_dir, run_dir):
     syn_dir = os.path.join(run_dir, "synth_1")
     impl_dir = os.path.join(run_dir, "impl_1")
 

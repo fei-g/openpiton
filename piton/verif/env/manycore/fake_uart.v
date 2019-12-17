@@ -23,7 +23,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-`include "define.vh"
+`include "define.tmp.h"
 
 module fake_uart (
     input                           clk,
@@ -47,12 +47,13 @@ wire                        m_axi_wvalid;
 integer file;
 
 initial begin
-    file = $fopen("fake_uart.out");
+    file = $fopen("fake_uart.log", "w");
 end
 
 always @(posedge clk) begin
     if (m_axi_awvalid & m_axi_wvalid & (m_axi_awaddr[2:0] == 3'b0)) begin
-        $fwrite(file, "%c", m_axi_wdata);
+        $fwrite(file, "%c", m_axi_wdata[7:0]);
+        $fflush(file);
     end
 end
 
@@ -70,7 +71,7 @@ noc_axilite_bridge #(
     .bridge_splitter_data   (uart_dst_noc3_data),
     .splitter_bridge_rdy    (uart_dst_noc3_rdy),
 
-    //axi lite signals             
+    //axi lite signals
     //write address channel
     .m_axi_awaddr           (m_axi_awaddr),
     .m_axi_awvalid          (m_axi_awvalid),
@@ -96,7 +97,10 @@ noc_axilite_bridge #(
     //write response channel
     .m_axi_bresp            (2'b0),
     .m_axi_bvalid           (1'b1),
-    .m_axi_bready           ()
+    .m_axi_bready           (),
+    // non-axi-lite signals
+    .w_reqbuf_size          (),
+    .r_reqbuf_size          ()
 );
 
 
