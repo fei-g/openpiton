@@ -35,6 +35,15 @@ set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets clk_mmcm_memio_unit_tests/
 set_property IOSTANDARD LVCMOS33 [get_ports rst_n]
 set_property PACKAGE_PIN R19 [get_ports rst_n]
 
+
+# serial:0.tx
+set_property LOC Y23 [get_ports serial_tx]
+set_property IOSTANDARD LVCMOS33 [get_ports serial_tx]
+## serial:0.rx
+set_property LOC Y20 [get_ports serial_rx]
+set_property IOSTANDARD LVCMOS33 [get_ports serial_rx]
+
+
 # Switches
 set_property PACKAGE_PIN G19 [get_ports sw[0]]
 set_property IOSTANDARD LVCMOS12 [get_ports sw[0]]
@@ -72,6 +81,358 @@ set_property PACKAGE_PIN W23 [get_ports led[7]]
 set_property IOSTANDARD LVCMOS33 [get_ports led[7]]
 
 # DDR
-set_property LOC ILOGIC_X1Y119 [get_cells {mc_top/mig_7series_0/u_mig_7series_0_mig/u_memc_ui_top_std/mem_intfc0/ddr_phy_top0/u_ddr_mc_phy_wrapper/gen_dqs_iobuf_HP.gen_dqs_iobuf[2].gen_dqs_diff.u_iddr_edge_det/u_phase_detector}]
-set_property PACKAGE_PIN AG2 [get_ports {ddr_dqs_p[2]}]
-set_property PACKAGE_PIN AH1 [get_ports {ddr_dqs_n[2]}]
+ ## ddr:0.a
+set_property LOC AC12 [get_ports ddr_addr[0]]
+set_property SLEW FAST [get_ports ddr_addr[0]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[0]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[0]]
+ ## ddr:0.a
+set_property LOC AE8 [get_ports ddr_addr[1]]
+set_property SLEW FAST [get_ports ddr_addr[1]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[1]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[1]]
+ ## ddr:0.a
+set_property LOC AD8 [get_ports ddr_addr[2]]
+set_property SLEW FAST [get_ports ddr_addr[2]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[2]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[2]]
+ ## ddr:0.a
+set_property LOC AC10 [get_ports ddr_addr[3]]
+set_property SLEW FAST [get_ports ddr_addr[3]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[3]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[3]]
+ ## ddr:0.a
+set_property LOC AD9 [get_ports ddr_addr[4]]
+set_property SLEW FAST [get_ports ddr_addr[4]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[4]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[4]]
+ ## ddr:0.a
+set_property LOC AA13 [get_ports ddr_addr[5]]
+set_property SLEW FAST [get_ports ddr_addr[5]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[5]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[5]]
+ ## ddr:0.a
+set_property LOC AA10 [get_ports ddr_addr[6]]
+set_property SLEW FAST [get_ports ddr_addr[6]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[6]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[6]]
+ ## ddr:0.a
+set_property LOC AA11 [get_ports ddr_addr[7]]
+set_property SLEW FAST [get_ports ddr_addr[7]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[7]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[7]]
+ ## ddr:0.a
+set_property LOC Y10 [get_ports ddr_addr[8]]
+set_property SLEW FAST [get_ports ddr_addr[8]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[8]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[8]]
+ ## ddr:0.a
+set_property LOC Y11 [get_ports ddr_addr[9]]
+set_property SLEW FAST [get_ports ddr_addr[9]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[9]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[9]]
+ ## ddr:0.a
+set_property LOC AB8 [get_ports ddr_addr[10]]
+set_property SLEW FAST [get_ports ddr_addr[10]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[10]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[10]]
+ ## ddr:0.a
+set_property LOC AA8 [get_ports ddr_addr[11]]
+set_property SLEW FAST [get_ports ddr_addr[11]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[11]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[11]]
+ ## ddr:0.a
+set_property LOC AB12 [get_ports ddr_addr[12]]
+set_property SLEW FAST [get_ports ddr_addr[12]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[12]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[12]]
+ ## ddr:0.a
+set_property LOC AA12 [get_ports ddr_addr[13]]
+set_property SLEW FAST [get_ports ddr_addr[13]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[13]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[13]]
+ ## ddr:0.a
+set_property LOC AH9 [get_ports ddr_addr[14]]
+set_property SLEW FAST [get_ports ddr_addr[14]]
+set_property VCCAUX_IO HIGH [get_ports ddr_addr[14]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_addr[14]]
+ ## ddr:0.ba
+set_property LOC AE9 [get_ports ddr_ba[0]]
+set_property SLEW FAST [get_ports ddr_ba[0]]
+set_property VCCAUX_IO HIGH [get_ports ddr_ba[0]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_ba[0]]
+ ## ddr:0.ba
+set_property LOC AB10 [get_ports ddr_ba[1]]
+set_property SLEW FAST [get_ports ddr_ba[1]]
+set_property VCCAUX_IO HIGH [get_ports ddr_ba[1]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_ba[1]]
+ ## ddr:0.ba
+set_property LOC AC11 [get_ports ddr_ba[2]]
+set_property SLEW FAST [get_ports ddr_ba[2]]
+set_property VCCAUX_IO HIGH [get_ports ddr_ba[2]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_ba[2]]
+ ## ddr:0.ras_n
+set_property LOC AE11 [get_ports ddr_ras_n]
+set_property SLEW FAST [get_ports ddr_ras_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_ras_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_ras_n]
+ ## ddr:0.cas_n
+set_property LOC AF11 [get_ports ddr_cas_n]
+set_property SLEW FAST [get_ports ddr_cas_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_cas_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_cas_n]
+ ## ddr:0.we_n
+set_property LOC AG13 [get_ports ddr_we_n]
+set_property SLEW FAST [get_ports ddr_we_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_we_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_we_n]
+ ## ddr:0.cs_n
+set_property LOC AH12 [get_ports ddr_cs_n]
+set_property SLEW FAST [get_ports ddr_cs_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_cs_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_cs_n]
+ ## ddr:0.dm
+set_property LOC AD4 [get_ports ddr_dm[0]]
+set_property SLEW FAST [get_ports ddr_dm[0]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dm[0]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_dm[0]]
+ ## ddr:0.dm
+set_property LOC AF3 [get_ports ddr_dm[1]]
+set_property SLEW FAST [get_ports ddr_dm[1]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dm[1]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_dm[1]]
+ ## ddr:0.dm
+set_property LOC AH4 [get_ports ddr_dm[2]]
+set_property SLEW FAST [get_ports ddr_dm[2]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dm[2]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_dm[2]]
+ ## ddr:0.dm
+set_property LOC AF8 [get_ports ddr_dm[3]]
+set_property SLEW FAST [get_ports ddr_dm[3]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dm[3]]
+set_property IOSTANDARD SSTL15 [get_ports ddr_dm[3]]
+ ## ddr:0.dq
+set_property LOC AD3 [get_ports ddr_dq[0]]
+set_property SLEW FAST [get_ports ddr_dq[0]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[0]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[0]]
+ ## ddr:0.dq
+set_property LOC AC2 [get_ports ddr_dq[1]]
+set_property SLEW FAST [get_ports ddr_dq[1]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[1]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[1]]
+ ## ddr:0.dq
+set_property LOC AC1 [get_ports ddr_dq[2]]
+set_property SLEW FAST [get_ports ddr_dq[2]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[2]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[2]]
+ ## ddr:0.dq
+set_property LOC AC5 [get_ports ddr_dq[3]]
+set_property SLEW FAST [get_ports ddr_dq[3]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[3]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[3]]
+ ## ddr:0.dq
+set_property LOC AC4 [get_ports ddr_dq[4]]
+set_property SLEW FAST [get_ports ddr_dq[4]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[4]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[4]]
+ ## ddr:0.dq
+set_property LOC AD6 [get_ports ddr_dq[5]]
+set_property SLEW FAST [get_ports ddr_dq[5]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[5]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[5]]
+ ## ddr:0.dq
+set_property LOC AE6 [get_ports ddr_dq[6]]
+set_property SLEW FAST [get_ports ddr_dq[6]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[6]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[6]]
+ ## ddr:0.dq
+set_property LOC AC7 [get_ports ddr_dq[7]]
+set_property SLEW FAST [get_ports ddr_dq[7]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[7]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[7]]
+ ## ddr:0.dq
+set_property LOC AF2 [get_ports ddr_dq[8]]
+set_property SLEW FAST [get_ports ddr_dq[8]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[8]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[8]]
+ ## ddr:0.dq
+set_property LOC AE1 [get_ports ddr_dq[9]]
+set_property SLEW FAST [get_ports ddr_dq[9]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[9]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[9]]
+ ## ddr:0.dq
+set_property LOC AF1 [get_ports ddr_dq[10]]
+set_property SLEW FAST [get_ports ddr_dq[10]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[10]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[10]]
+ ## ddr:0.dq
+set_property LOC AE4 [get_ports ddr_dq[11]]
+set_property SLEW FAST [get_ports ddr_dq[11]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[11]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[11]]
+ ## ddr:0.dq
+set_property LOC AE3 [get_ports ddr_dq[12]]
+set_property SLEW FAST [get_ports ddr_dq[12]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[12]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[12]]
+ ## ddr:0.dq
+set_property LOC AE5 [get_ports ddr_dq[13]]
+set_property SLEW FAST [get_ports ddr_dq[13]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[13]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[13]]
+ ## ddr:0.dq
+set_property LOC AF5 [get_ports ddr_dq[14]]
+set_property SLEW FAST [get_ports ddr_dq[14]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[14]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[14]]
+ ## ddr:0.dq
+set_property LOC AF6 [get_ports ddr_dq[15]]
+set_property SLEW FAST [get_ports ddr_dq[15]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[15]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[15]]
+ ## ddr:0.dq
+set_property LOC AJ4 [get_ports ddr_dq[16]]
+set_property SLEW FAST [get_ports ddr_dq[16]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[16]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[16]]
+ ## ddr:0.dq
+set_property LOC AH6 [get_ports ddr_dq[17]]
+set_property SLEW FAST [get_ports ddr_dq[17]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[17]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[17]]
+ ## ddr:0.dq
+set_property LOC AH5 [get_ports ddr_dq[18]]
+set_property SLEW FAST [get_ports ddr_dq[18]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[18]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[18]]
+ ## ddr:0.dq
+set_property LOC AH2 [get_ports ddr_dq[19]]
+set_property SLEW FAST [get_ports ddr_dq[19]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[19]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[19]]
+ ## ddr:0.dq
+set_property LOC AJ2 [get_ports ddr_dq[20]]
+set_property SLEW FAST [get_ports ddr_dq[20]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[20]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[20]]
+ ## ddr:0.dq
+set_property LOC AJ1 [get_ports ddr_dq[21]]
+set_property SLEW FAST [get_ports ddr_dq[21]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[21]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[21]]
+ ## ddr:0.dq
+set_property LOC AK1 [get_ports ddr_dq[22]]
+set_property SLEW FAST [get_ports ddr_dq[22]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[22]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[22]]
+ ## ddr:0.dq
+set_property LOC AJ3 [get_ports ddr_dq[23]]
+set_property SLEW FAST [get_ports ddr_dq[23]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[23]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[23]]
+ ## ddr:0.dq
+set_property LOC AF7 [get_ports ddr_dq[24]]
+set_property SLEW FAST [get_ports ddr_dq[24]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[24]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[24]]
+ ## ddr:0.dq
+set_property LOC AG7 [get_ports ddr_dq[25]]
+set_property SLEW FAST [get_ports ddr_dq[25]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[25]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[25]]
+ ## ddr:0.dq
+set_property LOC AJ6 [get_ports ddr_dq[26]]
+set_property SLEW FAST [get_ports ddr_dq[26]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[26]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[26]]
+ ## ddr:0.dq
+set_property LOC AK6 [get_ports ddr_dq[27]]
+set_property SLEW FAST [get_ports ddr_dq[27]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[27]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[27]]
+ ## ddr:0.dq
+set_property LOC AJ8 [get_ports ddr_dq[28]]
+set_property SLEW FAST [get_ports ddr_dq[28]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[28]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[28]]
+ ## ddr:0.dq
+set_property LOC AK8 [get_ports ddr_dq[29]]
+set_property SLEW FAST [get_ports ddr_dq[29]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[29]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[29]]
+ ## ddr:0.dq
+set_property LOC AK5 [get_ports ddr_dq[30]]
+set_property SLEW FAST [get_ports ddr_dq[30]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[30]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[30]]
+ ## ddr:0.dq
+set_property LOC AK4 [get_ports ddr_dq[31]]
+set_property SLEW FAST [get_ports ddr_dq[31]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dq[31]]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports ddr_dq[31]]
+ ## ddr:0.dqs_p
+set_property LOC AD2 [get_ports ddr_dqs_p[0]]
+set_property SLEW FAST [get_ports ddr_dqs_p[0]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_p[0]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_p[0]]
+ ## ddr:0.dqs_p
+set_property LOC AG4 [get_ports ddr_dqs_p[1]]
+set_property SLEW FAST [get_ports ddr_dqs_p[1]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_p[1]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_p[1]]
+ ## ddr:0.dqs_p
+set_property LOC AG2 [get_ports ddr_dqs_p[2]]
+set_property SLEW FAST [get_ports ddr_dqs_p[2]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_p[2]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_p[2]]
+ ## ddr:0.dqs_p
+set_property LOC AH7 [get_ports ddr_dqs_p[3]]
+set_property SLEW FAST [get_ports ddr_dqs_p[3]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_p[3]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_p[3]]
+ ## ddr:0.dqs_n
+set_property LOC AD1 [get_ports ddr_dqs_n[0]]
+set_property SLEW FAST [get_ports ddr_dqs_n[0]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_n[0]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_n[0]]
+ ## ddr:0.dqs_n
+set_property LOC AG3 [get_ports ddr_dqs_n[1]]
+set_property SLEW FAST [get_ports ddr_dqs_n[1]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_n[1]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_n[1]]
+ ## ddr:0.dqs_n
+set_property LOC AH1 [get_ports ddr_dqs_n[2]]
+set_property SLEW FAST [get_ports ddr_dqs_n[2]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_n[2]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_n[2]]
+ ## ddr:0.dqs_n
+set_property LOC AJ7 [get_ports ddr_dqs_n[3]]
+set_property SLEW FAST [get_ports ddr_dqs_n[3]]
+set_property VCCAUX_IO HIGH [get_ports ddr_dqs_n[3]]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_dqs_n[3]]
+ ## ddr:0.clk_p
+set_property LOC AB9 [get_ports ddr_ck_p]
+set_property SLEW FAST [get_ports ddr_ck_p]
+set_property VCCAUX_IO HIGH [get_ports ddr_ck_p]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_ck_p]
+ ## ddr:0.clk_n
+set_property LOC AC9 [get_ports ddr_ck_n]
+set_property SLEW FAST [get_ports ddr_ck_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_ck_n]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_ck_n]
+ ## ddr:0.cke
+set_property LOC AJ9 [get_ports ddr_cke]
+set_property SLEW FAST [get_ports ddr_cke]
+set_property VCCAUX_IO HIGH [get_ports ddr_cke]
+set_property IOSTANDARD SSTL15 [get_ports ddr_cke]
+ ## ddr:0.odt
+set_property LOC AK9 [get_ports ddr_odt]
+set_property SLEW FAST [get_ports ddr_odt]
+set_property VCCAUX_IO HIGH [get_ports ddr_odt]
+set_property IOSTANDARD SSTL15 [get_ports ddr_odt]
+ ## ddr:0.reset_n
+set_property LOC AG5 [get_ports ddr_reset_n]
+set_property SLEW FAST [get_ports ddr_reset_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_reset_n]
+set_property IOSTANDARD LVCMOS15 [get_ports ddr_reset_n]

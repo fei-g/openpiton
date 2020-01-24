@@ -56,6 +56,13 @@ module mc_top (
     output                          ddr_cas_n,
     output                          ddr_ras_n,
     output                          ddr_we_n,
+    
+    // Litedram serial ports
+    output        serial_tx,
+    input         serial_rx,
+
+    output        zero_done_out,
+
 `endif // PITONSYS_DDR4
 
     output [`DDR3_ADDR_WIDTH-1:0]   ddr_addr,
@@ -103,6 +110,7 @@ wire                                afifo_rst_2;
  wire    [`MIG_APP_DATA_WIDTH-1:0]  app_rd_data;
  wire                               app_rd_data_end;
  wire                               app_rd_data_valid;
+ wire                               app_rd_data_ready;
 
  wire                               core_app_en;
  wire    [`MIG_APP_CMD_WIDTH-1 :0]  core_app_cmd;
@@ -116,6 +124,7 @@ wire                                afifo_rst_2;
  wire    [`MIG_APP_DATA_WIDTH-1:0]  core_app_rd_data;
  wire                               core_app_rd_data_end;
  wire                               core_app_rd_data_valid;
+ wire                               core_app_rd_data_ready;
 
 `ifdef PITONSYS_MEM_ZEROER
 wire                                zero_app_en;
@@ -358,37 +367,7 @@ assign app_ref_req = 1'b0;
 assign app_sr_req = 1'b0;
 assign app_zq_req = 1'b0;
 
-`ifndef PITONSYS_AXI4_MEM
-`ifdef PITONSYS_MEM_ZEROER
-assign app_en                   = zero_app_en;
-assign app_cmd                  = zero_app_cmd;
-assign app_addr                 = zero_app_addr;
-assign app_wdf_wren             = zero_app_wdf_wren;
-assign app_wdf_data             = zero_app_wdf_data;
-assign app_wdf_mask             = zero_app_wdf_mask;
-assign app_wdf_end              = zero_app_wdf_end;
-assign noc_mig_bridge_rst       = ui_clk_sync_rst & ~init_calib_complete_zero;
-assign noc_mig_bridge_init_done = init_calib_complete_zero;
-assign init_calib_complete_out  = init_calib_complete_zero & ~ui_clk_syn_rst_delayed;
-`else
-assign app_en                   = core_app_en;
-assign app_cmd                  = core_app_cmd;
-assign app_addr                 = core_app_addr;
-assign app_wdf_wren             = core_app_wdf_wren;
-assign app_wdf_data             = core_app_wdf_data;
-assign app_wdf_mask             = core_app_wdf_mask;
-assign app_wdf_end              = core_app_wdf_end;
-assign noc_mig_bridge_rst       = ui_clk_sync_rst;
-assign noc_mig_bridge_init_done = init_calib_complete;
-assign init_calib_complete_out  = init_calib_complete & ~ui_clk_syn_rst_delayed;
-`endif
-assign core_app_rdy             = app_rdy;
-assign core_app_wdf_rdy         = app_wdf_rdy;
-assign core_app_rd_data_valid   = app_rd_data_valid;
-assign core_app_rd_data_end     = app_rd_data_end;
-assign core_app_rd_data         = app_rd_data;
-
-`else //ifndef PITONSYS_AXI4_MEM
+`ifdef PITONSYS_AXI4_MEM
 assign noc_mig_bridge_rst       = ui_clk_sync_rst;
 assign noc_mig_bridge_init_done = init_calib_complete;
 assign init_calib_complete_out  = init_calib_complete & ~ui_clk_syn_rst_delayed;
@@ -451,6 +430,7 @@ assign core_app_wdf_rdy         = app_wdf_rdy;
 assign core_app_rd_data_valid   = app_rd_data_valid;
 assign core_app_rd_data_end     = app_rd_data_end;
 assign core_app_rd_data         = app_rd_data;
+assign app_rd_data_ready        = core_app_rd_data_ready;
 
 noc_mig_bridge    #  (
     .MIG_APP_ADDR_WIDTH (`MIG_APP_ADDR_WIDTH        ),
@@ -475,6 +455,7 @@ noc_mig_bridge    #  (
     .app_rd_data_valid  (core_app_rd_data_valid     ),
     .phy_init_done      (noc_mig_bridge_init_done   ),
 
+    .app_rd_data_ready  (core_app_rd_data_ready     ),
     .app_wdf_wren_reg   (core_app_wdf_wren          ),
     .app_wdf_data_out   (core_app_wdf_data          ),
     .app_wdf_mask_out   (core_app_wdf_mask          ),
@@ -494,6 +475,8 @@ memory_zeroer #(
 
     .init_calib_complete_in     (init_calib_complete        ),
     .init_calib_complete_out    (init_calib_complete_zero   ),
+
+    .zero_done_out              (zero_done_out              ),
 
     .app_rdy_in                 (core_app_rdy               ),
     .app_wdf_rdy_in             (core_app_wdf_rdy           ),
@@ -575,6 +558,54 @@ ddr4_0 i_ddr4_0 (
 );
 
 `else // PITONSYS_DDR4
+wire init_error, pll_locked;
+litedram_core litedram_core_impl(
+    // Clock and reset
+    .clk200                   (sys_clk),
+    .cpu_reset_n              (sys_rst_n),
+
+    // Memory Interface
+    .ddram_a                  (ddr_addr),
+    .ddram_ba                 (ddr_ba),
+    .ddram_ras_n              (ddr_ras_n),
+    .ddram_cas_n              (ddr_cas_n),
+    .ddram_we_n               (ddr_we_n),
+    .ddram_cs_n               (ddr_cs_n),
+    .ddram_dm                 (ddr_dm),
+    .ddram_dq                 (ddr_dq),
+    .ddram_dqs_p              (ddr_dqs_p),
+    .ddram_dqs_n              (ddr_dqs_n),
+    .ddram_clk_p              (ddr_ck_p),
+    .ddram_clk_n              (ddr_ck_n),
+    .ddram_cke                (ddr_cke),
+    .ddram_odt                (ddr_odt),
+    .ddram_reset_n            (ddr_reset_n),
+
+    // Status Indicator
+    .init_done                (init_calib_complete),
+    .init_error               (init_error),
+    .pll_locked               (pll_locked),
+    .serial_tx                (serial_tx),
+    .serial_rx                (serial_rx),
+
+    // User Interface
+    .user_clk                 (ui_clk),
+    .user_rst                 (ui_clk_sync_rst),
+    .user_port0_cmd_valid     (app_en),
+    .user_port0_cmd_ready     (app_rdy),
+    .user_port0_cmd_we        (~app_cmd[0]),    // app_cmd: rd 001; wr 000
+    .user_port0_cmd_addr      (app_addr[27:3]), // Last 3 bits in the addr are 0; check the noc_mig_bridge for this
+    .user_port0_wdata_valid   (app_wdf_wren),
+    .user_port0_wdata_ready   (app_wdf_rdy),
+    .user_port0_wdata_we      (~app_wdf_mask),  // mask 0 enable; we 1 enable 
+    .user_port0_wdata_data    (app_wdf_data),
+    .user_port0_rdata_valid   (app_rd_data_valid),
+    .user_port0_rdata_ready   (app_rd_data_ready),      // Need to add this signal
+    .user_port0_rdata_data    (app_rd_data)
+);
+
+
+/*
 mig_7series_0   mig_7series_0 (
     // Memory interface ports
 `ifndef NEXYS4DDR_BOARD
@@ -639,7 +670,7 @@ mig_7series_0   mig_7series_0 (
     // System Clock Ports
     .sys_clk_i                      (sys_clk),
     .sys_rst                        (sys_rst_n)
-);
+);*/
 `endif // PITONSYS_DDR4
 
 `else // PITONSYS_AXI4_MEM

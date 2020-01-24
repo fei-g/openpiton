@@ -82,6 +82,8 @@ module noc_mig_bridge # (
    input                                 app_rd_data_valid,
    input                                 phy_init_done,
 
+   output reg                            app_rd_data_ready,
+
    output reg                            app_wdf_wren_reg,
    output      [MIG_APP_DATA_WIDTH-1:0]  app_wdf_data_out,
    output      [MIG_APP_MASK_WIDTH-1:0]  app_wdf_mask_out,
@@ -611,23 +613,37 @@ end
 // MC DATA RCV
 //*******************************************************
 always @(posedge clk) begin
-  if(rst) begin
-    buf_current_data_rcv <= 0;
-  end
-	else begin
-		if( (pkt_cmd_buf[buf_current_data_rcv] == `MSG_TYPE_NC_STORE_REQ || 
+    if(rst) begin
+        buf_current_data_rcv <= 0;
+    end
+    else begin
+	if( (pkt_cmd_buf[buf_current_data_rcv] == `MSG_TYPE_NC_STORE_REQ || 
              pkt_cmd_buf[buf_current_data_rcv] == `MSG_TYPE_STORE_MEM) && 
             (pkt_state_buf[buf_current_data_rcv][2:0] != `INACTIVE)) 
-    begin //no need to receive data for write commands
-      buf_current_data_rcv <= buf_current_data_rcv+1;
-    end
+        begin //no need to receive data for write commands
+            buf_current_data_rcv <= buf_current_data_rcv+1;
+        end
 
-    if(app_rd_data_valid_reg) begin //TODO: must ensure that we can always write to the next read command
-      if (app_rd_data_end_reg) begin
-        buf_current_data_rcv <= buf_current_data_rcv+1;
-      end
+        if(app_rd_data_valid_reg) begin //TODO: must ensure that we can always write to the next read command
+            if (app_rd_data_end_reg) begin 
+                buf_current_data_rcv <= buf_current_data_rcv+1;
+            end
+        end
     end
-  end
+end
+
+always @(posedge clk) begin
+    if (rst) begin
+        app_rd_data_ready <= 1'b0;
+    end
+    else begin
+        if (pkt_state_buf[buf_current_data_rcv] == `WAITING_DATA && !app_rd_data_ready) begin
+            app_rd_data_ready <= 1'b1;
+        end
+        else if (rd_last) begin
+            app_rd_data_ready <= 1'b0;
+        end
+    end
 end
 
 

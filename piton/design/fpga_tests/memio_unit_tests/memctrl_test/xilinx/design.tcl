@@ -59,6 +59,7 @@ set DESIGN_IP_FILE_PREFIXES [concat \
 set DESIGN_COE_IP_FILES [concat \
 ]
 
-set DESIGN_PRJ_IP_FILES [concat \
-    ${CHIPSET_PRJ_IP_FILES} \
-]
+set DESIGN_PRJ_IP_FILES ""
+#[concat \
+#    ${CHIPSET_PRJ_IP_FILES} \
+#]

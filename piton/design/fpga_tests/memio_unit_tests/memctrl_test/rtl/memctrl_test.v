@@ -73,6 +73,10 @@ module memctrl_test(
     input                                       mc_sys_clk,                             
 `endif
 
+    // Litedram serial ports
+    output        serial_tx,
+    input         serial_rx,
+
     input                                       rst_n,
 
     input  [7:0]                                sw,
@@ -103,13 +107,13 @@ module memctrl_test(
 // Type declarations //
 ///////////////////////
 
-`ifdef PITON_MEMCTRL_TEST_MINI_TEST
+//`ifdef PITON_MEMCTRL_TEST_MINI_TEST
 parameter                                   MEMSIZE_BYTES = 1024;
 parameter                                   MEMSIZE_BYTES_LOG2 = 10;
-`elsif GENESYS2_BOARD
-parameter                                   MEMSIZE_BYTES = 1073741824;
-parameter                                   MEMSIZE_BYTES_LOG2 = 30;
-`endif
+//`elsif GENESYS2_BOARD
+//parameter                                   MEMSIZE_BYTES = 1073741824;
+//parameter                                   MEMSIZE_BYTES_LOG2 = 30;
+//`endif
 
 // SW values
 localparam                                  ADDRESSING_MODE_BITS_HI = 2;
@@ -384,17 +388,23 @@ end
 assign clk_locked = 1'b1;
 `endif // PITON_MEMCTRL_TEST_SIM_CLKS
 
+wire zero_done_out;
+
 assign led[0] = clk_locked;
 assign led[1] = rst_n_combined_ff;
 assign led[2] = test_sys_rst_n;
 assign led[3] = test_running;
 assign led[4] = test_done;
 assign led[5] = test_timeout;
-assign led[7:6] = {2{test_passed}};
+//assign led[7:6] = {2{test_passed}};
+assign led[6] = test_passed;
+assign led[7] = zero_done_out;
 
 //////////////////////////
 // Sub-module Instances //
 //////////////////////////
+
+// Change to use the PLL in litedram
 
 `ifndef PITON_MEMCTRL_TEST_SIM_CLKS
 clk_mmcm_memio_unit_tests clk_mmcm_memio_unit_tests (
@@ -412,6 +422,7 @@ clk_mmcm_memio_unit_tests clk_mmcm_memio_unit_tests (
     .mc_sys_clk(mc_sys_clk)
 );
 `endif // PITON_MEMCTRL_TEST_SIM_CLKS
+
 
 // Sequential test driver
 mem_test_seq_driver mem_test_seq_driver (
@@ -542,6 +553,12 @@ mc_top mc_top(
     .mc_flit_out_rdy(mc_flit_out_rdy),
 
     .uart_boot_en(1'b0),
+
+    .serial_tx(serial_tx),
+    .serial_rx(serial_rx),
+
+    .zero_done_out(zero_done_out),
+
 
     .ddr_addr(ddr_addr),
     .ddr_ba(ddr_ba),
