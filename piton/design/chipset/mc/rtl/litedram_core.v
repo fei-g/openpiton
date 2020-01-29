@@ -18899,7 +18899,8 @@ BUFG BUFG_3(
 	.O(s7pll1_clkout_buf)
 );
 
-IDELAYCTRL IDELAYCTRL(
+// Only for genesys2? For other boards may need different LOC
+(* LOC = "IDELAYCTRL_X1Y2" *)IDELAYCTRL IDELAYCTRL_DDR(
 	.REFCLK(iodelay_clk),
 	.RST(ic_reset)
 );

@@ -58,10 +58,10 @@ module mc_top (
     output                          ddr_we_n,
     
     // Litedram serial ports
-    output        serial_tx,
-    input         serial_rx,
+    // output        serial_tx,
+    // input         serial_rx,
 
-    output        zero_done_out,
+    // output        zero_done_out,
 
 `endif // PITONSYS_DDR4
 
@@ -476,7 +476,7 @@ memory_zeroer #(
     .init_calib_complete_in     (init_calib_complete        ),
     .init_calib_complete_out    (init_calib_complete_zero   ),
 
-    .zero_done_out              (zero_done_out              ),
+    //.zero_done_out              (zero_done_out              ),
 
     .app_rdy_in                 (core_app_rdy               ),
     .app_wdf_rdy_in             (core_app_wdf_rdy           ),
@@ -558,7 +558,12 @@ ddr4_0 i_ddr4_0 (
 );
 
 `else // PITONSYS_DDR4
+
+
+`ifdef PITON_LITEDRAM  // LiteDRAM only support Genesys2 board 
 wire init_error, pll_locked;
+wire serial_tx, serial_rx; 
+assign serial_rx = 0;
 litedram_core litedram_core_impl(
     // Clock and reset
     .clk200                   (sys_clk),
@@ -604,8 +609,7 @@ litedram_core litedram_core_impl(
     .user_port0_rdata_data    (app_rd_data)
 );
 
-
-/*
+`else
 mig_7series_0   mig_7series_0 (
     // Memory interface ports
 `ifndef NEXYS4DDR_BOARD
@@ -670,7 +674,9 @@ mig_7series_0   mig_7series_0 (
     // System Clock Ports
     .sys_clk_i                      (sys_clk),
     .sys_rst                        (sys_rst_n)
-);*/
+);
+`endif // PITON_LITEDRAM
+
 `endif // PITONSYS_DDR4
 
 `else // PITONSYS_AXI4_MEM

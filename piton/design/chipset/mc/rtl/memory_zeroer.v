@@ -37,7 +37,7 @@ module memory_zeroer
     input   init_calib_complete_in,
     output  init_calib_complete_out,
 
-    output  zero_done_out,
+    // output  zero_done_out,
 
     // MIG User Interface
     input                           app_rdy_in,
@@ -99,13 +99,17 @@ begin
 end
 
 assign zeroing_done = (address_f >= MAX_MEM_ADDR);
-assign zero_done_out = zeroing_done;
+// assign zero_done_out = zeroing_done;
 assign extra_time_next = ((~zeroing_done) | (extra_time_f == 8'b0)) ? extra_time_f : (extra_time_f - 1'b1);
 assign extra_time_done = zeroing_done & (extra_time_f == 8'b0);
 
 assign init_calib_complete_out = init_calib_complete_in & extra_time_done;
 
-assign app_wdf_wren = 1'b1 & init_calib_complete_in; // & app_rdy_in & app_wdf_rdy_in;
+`ifdef PITON_LITEDRAM
+assign app_wdf_wren = 1'b1 & init_calib_complete_in; 
+`else
+assign app_wdf_wren = 1'b1 & app_rdy_in & app_wdf_rdy_in & init_calib_complete_in;
+`endif // PITON_LITEDRAM
 assign app_wdf_wren_out = zeroing_done ? app_wdf_wren_in : app_wdf_wren;
 
 assign app_wdf_data = {MIG_APP_DATA_WIDTH{1'b0}};
@@ -120,7 +124,11 @@ assign app_wdf_end_out = zeroing_done ? app_wdf_end_in : app_wdf_end;
 assign app_addr = address_f[MIG_APP_ADDR_WIDTH-1:0];
 assign app_addr_out = zeroing_done ? app_addr_in : app_addr;
 
-assign app_en = 1'b1 & init_calib_complete_in; // & app_rdy_in & app_wdf_rdy_in;
+`ifdef PITON_LITEDRAM
+assign app_en = 1'b1 & init_calib_complete_in; 
+`else
+assign app_en = 1'b1 & app_rdy_in & app_wdf_rdy_in & init_calib_complete_in;
+`endif // PITON_LITEDRAM
 assign app_en_out = zeroing_done ? app_en_in : app_en;
 
 assign app_cmd = `MIG_WR_CMD & init_calib_complete_in;
