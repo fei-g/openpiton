@@ -160,3 +160,365 @@ set_input_delay -clock [get_clocks sd_clk_out_1] -clock_fall -min -add_delay -14
 set_clock_groups -physically_exclusive -group [get_clocks -include_generated_clocks sd_clk_out] -group [get_clocks -include_generated_clocks sd_clk_out_1]
 set_clock_groups -logically_exclusive -group [get_clocks -include_generated_clocks sd_fast_clk] -group [get_clocks -include_generated_clocks sd_slow_clk]
 set_clock_groups -asynchronous -group [get_clocks -include_generated_clocks chipset_clk_clk_mmcm] -group [get_clocks -filter { NAME =~  "*sd*" }]
+
+
+################
+#  DDR3 PINs
+
+## ddr:0.a
+set_property PACKAGE_PIN A20 [get_ports {ddr_addr[0]}]
+set_property SLEW FAST [get_ports {ddr_addr[0]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[0]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[0]}]
+## ddr:0.a
+set_property PACKAGE_PIN B19 [get_ports {ddr_addr[1]}]
+set_property SLEW FAST [get_ports {ddr_addr[1]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[1]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[1]}]
+## ddr:0.a
+set_property PACKAGE_PIN C20 [get_ports {ddr_addr[2]}]
+set_property SLEW FAST [get_ports {ddr_addr[2]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[2]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[2]}]
+## ddr:0.a
+set_property PACKAGE_PIN A19 [get_ports {ddr_addr[3]}]
+set_property SLEW FAST [get_ports {ddr_addr[3]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[3]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[3]}]
+## ddr:0.a
+set_property PACKAGE_PIN A17 [get_ports {ddr_addr[4]}]
+set_property SLEW FAST [get_ports {ddr_addr[4]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[4]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[4]}]
+## ddr:0.a
+set_property PACKAGE_PIN A16 [get_ports {ddr_addr[5]}]
+set_property SLEW FAST [get_ports {ddr_addr[5]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[5]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[5]}]
+## ddr:0.a
+set_property PACKAGE_PIN D20 [get_ports {ddr_addr[6]}]
+set_property SLEW FAST [get_ports {ddr_addr[6]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[6]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[6]}]
+## ddr:0.a
+set_property PACKAGE_PIN C18 [get_ports {ddr_addr[7]}]
+set_property SLEW FAST [get_ports {ddr_addr[7]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[7]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[7]}]
+## ddr:0.a
+set_property PACKAGE_PIN D17 [get_ports {ddr_addr[8]}]
+set_property SLEW FAST [get_ports {ddr_addr[8]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[8]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[8]}]
+## ddr:0.a
+set_property PACKAGE_PIN C19 [get_ports {ddr_addr[9]}]
+set_property SLEW FAST [get_ports {ddr_addr[9]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[9]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[9]}]
+## ddr:0.a
+set_property PACKAGE_PIN B21 [get_ports {ddr_addr[10]}]
+set_property SLEW FAST [get_ports {ddr_addr[10]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[10]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[10]}]
+## ddr:0.a
+set_property PACKAGE_PIN B17 [get_ports {ddr_addr[11]}]
+set_property SLEW FAST [get_ports {ddr_addr[11]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[11]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[11]}]
+## ddr:0.a
+set_property PACKAGE_PIN A15 [get_ports {ddr_addr[12]}]
+set_property SLEW FAST [get_ports {ddr_addr[12]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[12]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[12]}]
+## ddr:0.a
+set_property PACKAGE_PIN A21 [get_ports {ddr_addr[13]}]
+set_property SLEW FAST [get_ports {ddr_addr[13]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[13]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[13]}]
+## ddr:0.a
+set_property PACKAGE_PIN F17 [get_ports {ddr_addr[14]}]
+set_property SLEW FAST [get_ports {ddr_addr[14]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[14]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[14]}]
+## ddr:0.a
+set_property PACKAGE_PIN E17 [get_ports {ddr_addr[15]}]
+set_property SLEW FAST [get_ports {ddr_addr[15]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_addr[15]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_addr[15]}]
+## ddr:0.ba
+set_property PACKAGE_PIN D21 [get_ports {ddr_ba[0]}]
+set_property SLEW FAST [get_ports {ddr_ba[0]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_ba[0]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_ba[0]}]
+## ddr:0.ba
+set_property PACKAGE_PIN C21 [get_ports {ddr_ba[1]}]
+set_property SLEW FAST [get_ports {ddr_ba[1]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_ba[1]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_ba[1]}]
+## ddr:0.ba
+set_property PACKAGE_PIN D18 [get_ports {ddr_ba[2]}]
+set_property SLEW FAST [get_ports {ddr_ba[2]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_ba[2]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_ba[2]}]
+## ddr:0.ras_n
+set_property PACKAGE_PIN E20 [get_ports ddr_ras_n]
+set_property SLEW FAST [get_ports ddr_ras_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_ras_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_ras_n]
+## ddr:0.cas_n
+set_property PACKAGE_PIN K17 [get_ports ddr_cas_n]
+set_property SLEW FAST [get_ports ddr_cas_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_cas_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_cas_n]
+## ddr:0.we_n
+set_property PACKAGE_PIN F20 [get_ports ddr_we_n]
+set_property SLEW FAST [get_ports ddr_we_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_we_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_we_n]
+## ddr:0.cs_n
+set_property PACKAGE_PIN J17 [get_ports ddr_cs_n]
+set_property SLEW FAST [get_ports ddr_cs_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_cs_n]
+set_property IOSTANDARD SSTL15 [get_ports ddr_cs_n]
+## ddr:0.dm
+set_property PACKAGE_PIN M13 [get_ports {ddr_dm[0]}]
+set_property SLEW FAST [get_ports {ddr_dm[0]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dm[0]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_dm[0]}]
+## ddr:0.dm
+set_property PACKAGE_PIN K15 [get_ports {ddr_dm[1]}]
+set_property SLEW FAST [get_ports {ddr_dm[1]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dm[1]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_dm[1]}]
+## ddr:0.dm
+set_property PACKAGE_PIN F12 [get_ports {ddr_dm[2]}]
+set_property SLEW FAST [get_ports {ddr_dm[2]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dm[2]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_dm[2]}]
+## ddr:0.dm
+set_property PACKAGE_PIN A14 [get_ports {ddr_dm[3]}]
+set_property SLEW FAST [get_ports {ddr_dm[3]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dm[3]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr_dm[3]}]
+## ddr:0.dq
+set_property PACKAGE_PIN N14 [get_ports {ddr_dq[0]}]
+set_property SLEW FAST [get_ports {ddr_dq[0]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[0]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[0]}]
+## ddr:0.dq
+set_property PACKAGE_PIN N13 [get_ports {ddr_dq[1]}]
+set_property SLEW FAST [get_ports {ddr_dq[1]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[1]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[1]}]
+## ddr:0.dq
+set_property PACKAGE_PIN L14 [get_ports {ddr_dq[2]}]
+set_property SLEW FAST [get_ports {ddr_dq[2]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[2]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[2]}]
+## ddr:0.dq
+set_property PACKAGE_PIN M14 [get_ports {ddr_dq[3]}]
+set_property SLEW FAST [get_ports {ddr_dq[3]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[3]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[3]}]
+## ddr:0.dq
+set_property PACKAGE_PIN M12 [get_ports {ddr_dq[4]}]
+set_property SLEW FAST [get_ports {ddr_dq[4]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[4]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[4]}]
+## ddr:0.dq
+set_property PACKAGE_PIN N15 [get_ports {ddr_dq[5]}]
+set_property SLEW FAST [get_ports {ddr_dq[5]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[5]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[5]}]
+## ddr:0.dq
+set_property PACKAGE_PIN M11 [get_ports {ddr_dq[6]}]
+set_property SLEW FAST [get_ports {ddr_dq[6]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[6]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[6]}]
+## ddr:0.dq
+set_property PACKAGE_PIN L12 [get_ports {ddr_dq[7]}]
+set_property SLEW FAST [get_ports {ddr_dq[7]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[7]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[7]}]
+## ddr:0.dq
+set_property PACKAGE_PIN K14 [get_ports {ddr_dq[8]}]
+set_property SLEW FAST [get_ports {ddr_dq[8]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[8]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[8]}]
+## ddr:0.dq
+set_property PACKAGE_PIN K13 [get_ports {ddr_dq[9]}]
+set_property SLEW FAST [get_ports {ddr_dq[9]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[9]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[9]}]
+## ddr:0.dq
+set_property PACKAGE_PIN H13 [get_ports {ddr_dq[10]}]
+set_property SLEW FAST [get_ports {ddr_dq[10]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[10]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[10]}]
+## ddr:0.dq
+set_property PACKAGE_PIN J13 [get_ports {ddr_dq[11]}]
+set_property SLEW FAST [get_ports {ddr_dq[11]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[11]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[11]}]
+## ddr:0.dq
+set_property PACKAGE_PIN L16 [get_ports {ddr_dq[12]}]
+set_property SLEW FAST [get_ports {ddr_dq[12]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[12]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[12]}]
+## ddr:0.dq
+set_property PACKAGE_PIN L15 [get_ports {ddr_dq[13]}]
+set_property SLEW FAST [get_ports {ddr_dq[13]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[13]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[13]}]
+## ddr:0.dq
+set_property PACKAGE_PIN H14 [get_ports {ddr_dq[14]}]
+set_property SLEW FAST [get_ports {ddr_dq[14]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[14]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[14]}]
+## ddr:0.dq
+set_property PACKAGE_PIN J15 [get_ports {ddr_dq[15]}]
+set_property SLEW FAST [get_ports {ddr_dq[15]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[15]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[15]}]
+## ddr:0.dq
+set_property PACKAGE_PIN E15 [get_ports {ddr_dq[16]}]
+set_property SLEW FAST [get_ports {ddr_dq[16]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[16]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[16]}]
+## ddr:0.dq
+set_property PACKAGE_PIN E13 [get_ports {ddr_dq[17]}]
+set_property SLEW FAST [get_ports {ddr_dq[17]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[17]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[17]}]
+## ddr:0.dq
+set_property PACKAGE_PIN F15 [get_ports {ddr_dq[18]}]
+set_property SLEW FAST [get_ports {ddr_dq[18]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[18]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[18]}]
+## ddr:0.dq
+set_property PACKAGE_PIN E14 [get_ports {ddr_dq[19]}]
+set_property SLEW FAST [get_ports {ddr_dq[19]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[19]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[19]}]
+## ddr:0.dq
+set_property PACKAGE_PIN G13 [get_ports {ddr_dq[20]}]
+set_property SLEW FAST [get_ports {ddr_dq[20]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[20]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[20]}]
+## ddr:0.dq
+set_property PACKAGE_PIN G12 [get_ports {ddr_dq[21]}]
+set_property SLEW FAST [get_ports {ddr_dq[21]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[21]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[21]}]
+## ddr:0.dq
+set_property PACKAGE_PIN F14 [get_ports {ddr_dq[22]}]
+set_property SLEW FAST [get_ports {ddr_dq[22]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[22]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[22]}]
+## ddr:0.dq
+set_property PACKAGE_PIN G14 [get_ports {ddr_dq[23]}]
+set_property SLEW FAST [get_ports {ddr_dq[23]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[23]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[23]}]
+## ddr:0.dq
+set_property PACKAGE_PIN B14 [get_ports {ddr_dq[24]}]
+set_property SLEW FAST [get_ports {ddr_dq[24]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[24]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[24]}]
+## ddr:0.dq
+set_property PACKAGE_PIN C13 [get_ports {ddr_dq[25]}]
+set_property SLEW FAST [get_ports {ddr_dq[25]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[25]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[25]}]
+## ddr:0.dq
+set_property PACKAGE_PIN B16 [get_ports {ddr_dq[26]}]
+set_property SLEW FAST [get_ports {ddr_dq[26]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[26]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[26]}]
+## ddr:0.dq
+set_property PACKAGE_PIN D15 [get_ports {ddr_dq[27]}]
+set_property SLEW FAST [get_ports {ddr_dq[27]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[27]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[27]}]
+## ddr:0.dq
+set_property PACKAGE_PIN D13 [get_ports {ddr_dq[28]}]
+set_property SLEW FAST [get_ports {ddr_dq[28]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[28]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[28]}]
+## ddr:0.dq
+set_property PACKAGE_PIN E12 [get_ports {ddr_dq[29]}]
+set_property SLEW FAST [get_ports {ddr_dq[29]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[29]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[29]}]
+## ddr:0.dq
+set_property PACKAGE_PIN C16 [get_ports {ddr_dq[30]}]
+set_property SLEW FAST [get_ports {ddr_dq[30]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[30]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[30]}]
+## ddr:0.dq
+set_property PACKAGE_PIN D16 [get_ports {ddr_dq[31]}]
+set_property SLEW FAST [get_ports {ddr_dq[31]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dq[31]}]
+set_property IOSTANDARD SSTL15_T_DCI [get_ports {ddr_dq[31]}]
+## ddr:0.dqs_p
+set_property SLEW FAST [get_ports {ddr_dqs_p[0]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dqs_p[0]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_p[0]}]
+## ddr:0.dqs_p
+set_property SLEW FAST [get_ports {ddr_dqs_p[1]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dqs_p[1]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_p[1]}]
+## ddr:0.dqs_p
+set_property SLEW FAST [get_ports {ddr_dqs_p[2]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dqs_p[2]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_p[2]}]
+## ddr:0.dqs_p
+set_property SLEW FAST [get_ports {ddr_dqs_p[3]}]
+set_property VCCAUX_IO HIGH [get_ports {ddr_dqs_p[3]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_p[3]}]
+## ddr:0.dqs_n
+set_property PACKAGE_PIN M16 [get_ports {ddr_dqs_n[0]}]
+set_property PACKAGE_PIN N16 [get_ports {ddr_dqs_p[0]}]
+set_property SLEW FAST [get_ports {ddr_dqs_n[0]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_n[0]}]
+## ddr:0.dqs_n
+set_property PACKAGE_PIN J12 [get_ports {ddr_dqs_n[1]}]
+set_property PACKAGE_PIN K12 [get_ports {ddr_dqs_p[1]}]
+set_property SLEW FAST [get_ports {ddr_dqs_n[1]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_n[1]}]
+## ddr:0.dqs_n
+set_property PACKAGE_PIN H16 [get_ports {ddr_dqs_p[2]}]
+set_property PACKAGE_PIN G16 [get_ports {ddr_dqs_n[2]}]
+set_property SLEW FAST [get_ports {ddr_dqs_n[2]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_n[2]}]
+## ddr:0.dqs_n
+set_property PACKAGE_PIN C15 [get_ports {ddr_dqs_p[3]}]
+set_property PACKAGE_PIN C14 [get_ports {ddr_dqs_n[3]}]
+set_property SLEW FAST [get_ports {ddr_dqs_n[3]}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr_dqs_n[3]}]
+## ddr:0.clk_p
+set_property SLEW FAST [get_ports ddr_ck_p]
+set_property VCCAUX_IO HIGH [get_ports ddr_ck_p]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_ck_p]
+## ddr:0.clk_n
+set_property PACKAGE_PIN H19 [get_ports ddr_ck_p]
+set_property PACKAGE_PIN G18 [get_ports ddr_ck_n]
+set_property SLEW FAST [get_ports ddr_ck_n]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports ddr_ck_n]
+## ddr:0.cke
+set_property PACKAGE_PIN K19 [get_ports ddr_cke]
+set_property SLEW FAST [get_ports ddr_cke]
+set_property VCCAUX_IO HIGH [get_ports ddr_cke]
+set_property IOSTANDARD SSTL15 [get_ports ddr_cke]
+## ddr:0.odt
+set_property PACKAGE_PIN H20 [get_ports ddr_odt]
+set_property SLEW FAST [get_ports ddr_odt]
+set_property VCCAUX_IO HIGH [get_ports ddr_odt]
+set_property IOSTANDARD SSTL15 [get_ports ddr_odt]
+## ddr:0.reset_n
+set_property PACKAGE_PIN C29 [get_ports ddr_reset_n]
+set_property SLEW FAST [get_ports ddr_reset_n]
+set_property VCCAUX_IO HIGH [get_ports ddr_reset_n]
+set_property IOSTANDARD LVCMOS15 [get_ports ddr_reset_n]
+
+

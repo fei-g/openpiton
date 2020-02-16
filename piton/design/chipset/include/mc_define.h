@@ -50,6 +50,25 @@
 
 `elsif VC707_BOARD
     // specify mem size in MByte here
+`ifdef PITON_LITEDRAM
+    `define BOARD_MEM_SIZE_MB       512
+    `define WORDS_PER_BURST         8
+    `define WORD_SIZE               4 // in bytes
+    `define MIG_APP_ADDR_WIDTH      28
+    `define MIG_APP_CMD_WIDTH       3
+    `define MIG_APP_DATA_WIDTH      256
+    `define MIG_APP_MASK_WIDTH      32
+
+    `define DDR3_DQ_WIDTH           32 // WORD_SIZE*8
+    `define DDR3_DQS_WIDTH          4
+    `define DDR3_ADDR_WIDTH         16
+    `define DDR3_BA_WIDTH           3
+    `define DDR3_DM_WIDTH           4
+    `define DDR3_CK_WIDTH           1
+    `define DDR3_CKE_WIDTH          1
+    `define DDR3_CS_WIDTH           1
+    `define DDR3_ODT_WIDTH          1
+`else
     `define BOARD_MEM_SIZE_MB       1024
     `define WORDS_PER_BURST         8
     `define WORD_SIZE               8 // in bytes
@@ -67,6 +86,7 @@
     `define DDR3_CKE_WIDTH          1
     `define DDR3_CS_WIDTH           1
     `define DDR3_ODT_WIDTH          1
+`endif
 `elsif VCU118_BOARD
     `define BOARD_MEM_SIZE_MB       2048
     `define WORDS_PER_BURST         8

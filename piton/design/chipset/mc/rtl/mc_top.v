@@ -599,7 +599,7 @@ litedram_core litedram_core_impl(
     .user_port0_cmd_valid     (app_en),
     .user_port0_cmd_ready     (app_rdy),
     .user_port0_cmd_we        (~app_cmd[0]),    // app_cmd: rd 001; wr 000
-    .user_port0_cmd_addr      (app_addr[27:3]), // Last 3 bits in the addr are 0; check the noc_mig_bridge for this
+    .user_port0_cmd_addr      (app_addr[`MIG_APP_ADDR_WIDTH-2:3]), // TODO: what does the top bit of the addr mean? Last 3 bits in the addr are 0; check the noc_mig_bridge for this
     .user_port0_wdata_valid   (app_wdf_wren),
     .user_port0_wdata_ready   (app_wdf_rdy),
     .user_port0_wdata_we      (~app_wdf_mask),  // mask 0 enable; we 1 enable 
