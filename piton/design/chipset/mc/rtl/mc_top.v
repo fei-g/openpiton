@@ -564,7 +564,15 @@ ddr4_0 i_ddr4_0 (
 wire init_error, pll_locked;
 wire serial_tx, serial_rx; 
 assign serial_rx = 0;
-litedram_core litedram_core_impl(
+
+`ifdef GENESYS2_BOARD
+litedram_core_g2 litedram_core_impl(
+`elsif VC707_BOARD
+litedram_core_vc707 litedram_core_impl(
+`else
+litedram_core litedram_core_impl(  // Wrong case. Openpiton+Litedram does not support this board 
+`endif
+
     // Clock and reset
     .clk200                   (sys_clk),
     .cpu_reset_n              (sys_rst_n),
