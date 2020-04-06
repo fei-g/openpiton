@@ -104,17 +104,24 @@ localparam RATIO_WIDTH  = clogb2(RATIO);
 localparam WORD_SIZE_LOG = clogb2(`WORD_SIZE);
 
 
-
 integer i;
 
 // global buffers
 reg [`NOC_DATA_WIDTH-1:0]           pkt_w1        [IN_FLIGHT_LIMIT-1:0];
 reg [`NOC_DATA_WIDTH-1:0]           pkt_w2        [IN_FLIGHT_LIMIT-1:0];
 reg [`NOC_DATA_WIDTH-1:0]           pkt_w3        [IN_FLIGHT_LIMIT-1:0]; 
-reg [APP_DATA_WIDTH-1:0]  pkt_data_buf  [IN_FLIGHT_LIMIT-1:0];
- reg [2:0]                     pkt_state_buf [IN_FLIGHT_LIMIT-1:0];
- reg [`MSG_TYPE_WIDTH-1:0]   pkt_cmd_buf   [IN_FLIGHT_LIMIT-1:0];
+reg [APP_DATA_WIDTH-1:0]            pkt_data_buf  [IN_FLIGHT_LIMIT-1:0];
+reg [2:0]                           pkt_state_buf [IN_FLIGHT_LIMIT-1:0];
+reg [`MSG_TYPE_WIDTH-1:0]           pkt_cmd_buf   [IN_FLIGHT_LIMIT-1:0];
+reg [`MSG_DATA_SIZE_WIDTH-1:0]      pkt_data_size_buf   [IN_FLIGHT_LIMIT-1:0];
+`ifdef L2_SEND_NC_REQ
+reg [APP_MASK_WIDTH-1:0]            pkt_mask_buf   [IN_FLIGHT_LIMIT-1:0];
+`endif
 
+reg [2:0] actual_ratio_buf   [IN_FLIGHT_LIMIT-1:0];   // Maximm ratio is 4(3'b100) Assumption: MIG_APP_DATA_WIDTH can only be 128/256/512
+reg [2:0] cmd_actual_ratio;
+reg [2:0] wdf_actual_ratio;
+reg [2:0] data_rcv_actual_ratio;
 //*******************************************************
 // ACCEPT PACKETS
 //*******************************************************
@@ -135,7 +142,6 @@ reg [`NOC_DATA_WIDTH-1:0]           flit_out_buffer[MAX_PKT_LEN-1:0];
 
 reg [BUFFER_ADDR_SIZE-1:0]    buf_current_wdf; //tracks the current data sender to MC
 reg                           buf_wdf_data_half;  //which half of the data we are writing;
-reg                           r_app_wdf_wren;     //write_enable
 
 wire                        app_wdf_wren;
 wire  [APP_DATA_WIDTH-1:0]  app_wdf_data;
@@ -155,9 +161,7 @@ reg  [APP_DATA_WIDTH-1:0]  app_wdf_data_r_r;
 reg  [APP_MASK_WIDTH-1:0]  app_wdf_mask_r_r;
 reg                        app_wdf_end_r_r;
 
-reg       [APP_DATA_WIDTH-1:0]  app_rd_data_reg;
 reg                             app_rd_data_end_reg;
-reg                             app_rd_data_valid_reg;
 
 reg       [CL_ADDR_WIDTH-1:0]      cl_addr_reg;
 
@@ -187,15 +191,66 @@ wire  [MIG_APP_MASK_WIDTH-1:0]  wdf_mask_part [RATIO-1:0];
 reg   [MIG_APP_DATA_WIDTH-1:0]  app_rd_data_part [RATIO-1:0];
 wire  [APP_DATA_WIDTH-1:0]      app_rd_data_trans;
 
+`ifdef L2_SEND_NC_REQ
+reg [7:0]                   mask_word;
+reg [APP_MASK_WIDTH-1:0]    mask_allwords;
+reg [APP_DATA_WIDTH-1:0]    out_data_replicated;
+`endif
+reg [APP_DATA_WIDTH-1:0]    in_data_replicated;
 
+wire [5:0] subline_offset_addr_in;
+wire [5:0] subline_offset_addr_out;
+wire [1:0] subline_addr;
+wire [1:0] subline_addr_wdf;
+wire [1:0] subline_addr_rcv;
 
+reg [1:0] subline_addr_reg;
+reg [1:0] subline_addr_wdf_reg;
+
+`ifdef L2_SEND_NC_REQ
+// Fei: Cacheable memory request always asks for 64B, so the number of mem app commands to 
+// send is always RATIO. However, non-cacheable request could ask for 1B/2B...
+// data. We need to figure out the "actual RATIO" for each non-cacaheable request.
+generate begin
+  genvar ii;
+  for (ii = 0; ii < IN_FLIGHT_LIMIT; ii = ii + 1) begin: CAL_ACTUAL_RATIO
+    always @(*) begin
+        if ( (pkt_cmd_buf[ii] == `MSG_TYPE_NC_STORE_REQ) || (pkt_cmd_buf[ii] == `MSG_TYPE_NC_LOAD_REQ) ) begin
+            case (pkt_data_size_buf[ii])
+                `MSG_DATA_SIZE_64B: begin
+                    // Assumption: APP_DATA_WIDTH is always 512
+                    // If the required data size is also 512, we could keep
+                    // using the same RATIO
+                    actual_ratio_buf[ii] = RATIO;
+                end
+                `MSG_DATA_SIZE_32B: begin
+                    actual_ratio_buf[ii] = RATIO >> 1; 
+                    actual_ratio_buf[ii] = (actual_ratio_buf[ii] == 0) ? 1 : actual_ratio_buf[ii];
+                end
+                // // Assumption: The smallest MIG_APP_DATA_WIDTH is 128
+                // // If MIG_APP_DATA_WIDTH = 64, uncomment the following lines
+                //`MSG_DATA_SIZE_16B: begin
+                //    actual_ratio_buf[ii] = RATIO >> 2; 
+                //    actual_ratio_buf[ii] = (actual_ratio_buf[ii] == 0) ? 1 : actual_ratio_buf[ii];
+                //end
+                default: begin
+                    actual_ratio_buf[ii] = 3'd1;
+                end
+            endcase
+        end
+        else begin
+            actual_ratio_buf[ii] = RATIO;
+        end
+    end
+  end
+end
+endgenerate
+`endif
 
 //--------------------------------
 
 always @(posedge clk) begin
-  app_rd_data_reg       <= app_rd_data_trans;
   app_rd_data_end_reg   <= rd_last;
-  app_rd_data_valid_reg <= rd_last;
 end
 
 //assignments
@@ -236,13 +291,16 @@ always @(posedge clk) begin
       //############## Accepting Addr Flit ###################
       `ACCEPT_W2: begin
         pkt_w2        [buf_current_in] <= flit_in;  
+        pkt_data_size_buf   [buf_current_in] <= flit_in[`MSG_DATA_SIZE_];
         remaining_flits <= remaining_flits-1;
         acc_state <= `ACCEPT_W3;
       end
       //############## Accepting Src Flits ##################
       `ACCEPT_W3: begin
-        pkt_w3        [buf_current_in] <= flit_in;
-        
+        pkt_w3        [buf_current_in] <= flit_in; 
+`ifdef L2_SEND_NC_REQ
+        pkt_mask_buf [buf_current_in] <= ~mask_allwords;
+`endif
         if(remaining_flits == 0) begin //read command
             //check if we can start accepting the next command
             if(buf_current_in+`ADDR_ONE == buf_current_out) begin
@@ -268,7 +326,6 @@ always @(posedge clk) begin
         //check if we are done accepting flits
         if((remaining_flits == 0)) begin
             buf_current_in <= buf_current_in+1;
-
             if (buf_current_in+`ADDR_ONE != buf_current_out) begin	
                 acc_state <= `ACCEPT_W1;
             end
@@ -293,6 +350,31 @@ always @(posedge clk) begin
   end
 end
 
+always @(*) begin
+`ifdef L2_SEND_NC_REQ
+    if (pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_STORE_REQ || pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_LOAD_REQ) begin
+        case (pkt_data_size_buf[buf_current_in])
+        `MSG_DATA_SIZE_64B: begin
+            in_data_replicated = {flit_in,in_data_buf[1],in_data_buf[2],in_data_buf[3],in_data_buf[4],in_data_buf[5],in_data_buf[6],in_data_buf[7]};
+        end
+        `MSG_DATA_SIZE_32B: begin
+            in_data_replicated = {flit_in,in_data_buf[1],in_data_buf[2],in_data_buf[3],flit_in,in_data_buf[1],in_data_buf[2],in_data_buf[3]};
+        end
+        `MSG_DATA_SIZE_16B: begin
+            in_data_replicated = {flit_in,in_data_buf[1],flit_in,in_data_buf[1],flit_in,in_data_buf[1],flit_in,in_data_buf[1]};
+        end
+        default: begin
+            in_data_replicated = {8{flit_in}};
+        end
+        endcase
+    end
+    else begin
+            in_data_replicated = {flit_in,in_data_buf[1],in_data_buf[2],in_data_buf[3],in_data_buf[4],in_data_buf[5],in_data_buf[6],in_data_buf[7]};
+    end
+`else
+            in_data_replicated = {flit_in,in_data_buf[1],in_data_buf[2],in_data_buf[3],in_data_buf[4],in_data_buf[5],in_data_buf[6],in_data_buf[7]};
+`endif
+end
 
 // Alexey
 // dealing with mutlidriver problem
@@ -306,15 +388,8 @@ generate begin
       end
       else begin
         pkt_data_buf[ii]  <= (ii == buf_current_in) & flit_in_val &
-                             (acc_state == `ACCEPT_DATA) & (remaining_flits == 0)   ?   { flit_in, 
-                                                                                        in_data_buf[1], 
-                                                                                        in_data_buf[2],
-                                                                                        in_data_buf[3],
-                                                                                        in_data_buf[4],
-                                                                                        in_data_buf[5],
-                                                                                        in_data_buf[6],
-                                                                                        in_data_buf[7]}   :
-                              (ii == buf_current_data_rcv) & app_rd_data_valid_reg  ?   app_rd_data_reg   : 
+                             (acc_state == `ACCEPT_DATA) & (remaining_flits == 0)   ?   in_data_replicated   :
+                              (ii == buf_current_data_rcv) & app_rd_data_end_reg  ?   app_rd_data_trans   : // Need to be test without NC_REQ 
                                                                                         pkt_data_buf[ii]  ;
         pkt_state_buf[ii] <= (ii == buf_current_in)   & 
                              flit_in_val                              ? ((acc_state == `ACCEPT_W1)                ?   `FILLING          :
@@ -331,7 +406,6 @@ generate begin
                                (pkt_state_buf[ii] == `INACTIVE))  &
                               (remaining_flt_out == 0)                ?   `INACTIVE         :
                               (ii == buf_current_data_rcv)        &
-                              app_rd_data_valid_reg               & 
                               app_rd_data_end_reg                     ?   `READY            :
                               (ii == buf_current_cmd)             &
                               app_en & app_rdy_trans                        ? ((pkt_cmd_buf[ii] == `MSG_TYPE_NC_STORE_REQ) |
@@ -358,19 +432,34 @@ endgenerate
 
 
 always @(posedge clk) begin
-  app_wdf_wren_r <= app_wdf_rdy_trans ? app_wdf_wren  : app_wdf_wren_r;
-  app_wdf_data_r <= app_wdf_rdy_trans ? app_wdf_data  : app_wdf_data_r;
-  app_wdf_mask_r <= app_wdf_rdy_trans ? app_wdf_mask  : app_wdf_mask_r;
-  app_wdf_end_r  <= app_wdf_rdy_trans ? app_wdf_end   : app_wdf_end_r;
+    if (rst) begin
+        app_wdf_wren_r <= 1'b0;                  
+        app_wdf_data_r <= {APP_DATA_WIDTH{1'b0}};
+        app_wdf_mask_r <= {APP_MASK_WIDTH{1'b0}};
+        app_wdf_end_r  <= 1'b0;                  
+    end
+    else begin
+        app_wdf_wren_r <= app_wdf_rdy_trans ? app_wdf_wren  : app_wdf_wren_r;
+        app_wdf_data_r <= app_wdf_rdy_trans ? app_wdf_data  : app_wdf_data_r;
+        app_wdf_mask_r <= app_wdf_rdy_trans ? app_wdf_mask  : app_wdf_mask_r;
+        app_wdf_end_r  <= app_wdf_rdy_trans ? app_wdf_end   : app_wdf_end_r;
+    end
 end
 
 always @(posedge clk) begin
-  app_wdf_wren_r_r <= app_wdf_rdy_trans   ? app_wdf_wren_r  : app_wdf_wren_r_r;
-  app_wdf_data_r_r <= app_wdf_rdy_trans   ? app_wdf_data_r  : app_wdf_data_r_r;
-  app_wdf_mask_r_r <= app_wdf_rdy_trans   ? app_wdf_mask_r  : app_wdf_mask_r_r;
-  app_wdf_end_r_r  <= app_wdf_rdy_trans   ? app_wdf_end_r   : app_wdf_end_r_r;
+    if (rst) begin
+        app_wdf_wren_r_r <= 1'b0;                  
+        app_wdf_data_r_r <= {APP_DATA_WIDTH{1'b0}};
+        app_wdf_mask_r_r <= {APP_MASK_WIDTH{1'b0}};
+        app_wdf_end_r_r  <= 1'b0;                  
+    end
+    else begin
+        app_wdf_wren_r_r <= app_wdf_rdy_trans   ? app_wdf_wren_r  : app_wdf_wren_r_r;
+        app_wdf_data_r_r <= app_wdf_rdy_trans   ? app_wdf_data_r  : app_wdf_data_r_r;
+        app_wdf_mask_r_r <= app_wdf_rdy_trans   ? app_wdf_mask_r  : app_wdf_mask_r_r;
+        app_wdf_end_r_r  <= app_wdf_rdy_trans   ? app_wdf_end_r   : app_wdf_end_r_r;
+    end
 end
-
 
 // Alexey: made app_* interface to be output from registers because of timing
 always @(posedge clk) begin
@@ -378,17 +467,21 @@ always @(posedge clk) begin
     app_wdf_wren_reg  <= 1'b0;
     app_wdf_data_reg  <= {APP_DATA_WIDTH{1'b0}};
     app_wdf_mask_reg  <= {APP_MASK_WIDTH{1'b0}};
-    app_wdf_end_reg   <= 1'b0;
+    app_wdf_end_reg   <= 1'b0;                  
     app_en_reg        <= 1'b0;
     cl_addr_reg       <= {CL_ADDR_WIDTH{1'b0}};
+    subline_addr_reg  <= 2'b0;
+    subline_addr_wdf_reg  <= 2'b0;
     app_cmd_reg       <= {3{1'b0}};
   end else begin
     app_wdf_wren_reg  <= app_wdf_rdy_trans      ? app_wdf_wren_r_r : app_wdf_wren_reg;
     app_wdf_data_reg  <= app_wdf_rdy_trans      ? app_wdf_data_r_r : app_wdf_data_reg;
     app_wdf_mask_reg  <= app_wdf_rdy_trans      ? app_wdf_mask_r_r : app_wdf_mask_reg;
     app_wdf_end_reg   <= app_wdf_rdy_trans      ? app_wdf_end_r_r  : app_wdf_end_reg;
+    subline_addr_wdf_reg  <= app_wdf_rdy_trans    ? subline_addr_wdf     : subline_addr_wdf_reg;
     app_en_reg        <= app_rdy_trans    ? app_en       : app_en_reg;
     cl_addr_reg      <= app_rdy_trans    ? cl_addr     : cl_addr_reg;
+    subline_addr_reg  <= app_rdy_trans    ? subline_addr     : subline_addr_reg;
     app_cmd_reg       <= app_rdy_trans    ? app_cmd      : app_cmd_reg;
   end
 end
@@ -396,51 +489,149 @@ end
 
 //-------------------------------------------------------------------------------------------------------
 // Alexey: dealing with unequal width (pkt_trans VS MIG)
-wire [RATIO_WIDTH-1:0]  last_addr_bits [RATIO-1:0];
-wire [RATIO-1:0]        inv_cmp [RATIO_WIDTH-1:0];
-wire [RATIO_WIDTH-1:0]  curr_last_bits;
+wire [RATIO_WIDTH-1:0]  curr_subline_cmd;
 
+`ifndef L2_SEND_NC_REQ
 generate begin
-  if (RATIO_WIDTH > 0) begin
-    assign curr_last_bits = cmd_part[RATIO_WIDTH-1:0];
-  end
-end
-endgenerate
-/*
-generate begin
-  genvar ii;
-  if (RATIO_WIDTH > 0) begin
-    for (ii = 0; ii < RATIO; ii = ii + 1) begin
-      wire  cmp;
-
-      assign cmp = cmd_part == ii;
-      assign last_addr_bits[ii] = {1'b0, {RATIO_WIDTH{cmp}}} & ii;
+    if (RATIO_WIDTH > 0) begin
+        assign curr_subline_cmd = cmd_part[RATIO_WIDTH-1:0];
     end
-  end
+end
+endgenerate
+
+`else
+
+wire [RATIO_WIDTH-1:0]  curr_subline_rcv;
+wire [RATIO_WIDTH-1:0]  curr_subline_wdf;
+
+generate begin
+    case(RATIO)
+        2: begin
+            // Need one extra bit to address the sub-line
+            assign curr_subline_cmd = (cmd_actual_ratio == 2) ? cmd_part[0] : subline_addr_reg[1]; 
+        end
+        4: begin
+            // Need two extra bits to address the sub-line
+            assign curr_subline_cmd = (cmd_actual_ratio == 4) ? cmd_part[1:0] : 
+                                    (cmd_actual_ratio == 2) ? {subline_addr_reg[1], cmd_part[0]} :
+                                    subline_addr_reg[1:0]; 
+        end
+        // If MIG_APP_DATA_WIDTH = 64, need to add another case (RATIO=8) 
+        default: begin
+            // Doesn't need curr_subline
+            // curr_subline is not declared in this case
+        end
+    endcase
 end
 endgenerate
 
 generate begin
-  genvar ii, jj;
-  if (RATIO_WIDTH > 0) begin
-    for (ii = 0; ii < RATIO_WIDTH; ii = ii + 1) begin
-      for (jj = 0; jj < RATIO; jj = jj + 1) begin
-        assign inv_cmp[ii][jj] = 
-        [jj][ii];
-      end
-
-      assign curr_last_bits[ii] = |inv_cmp[ii];
-    end
-  end
+    case(RATIO)
+        2: begin
+            // Need one extra bit to address the sub-line
+            assign curr_subline_rcv = (data_rcv_actual_ratio == 2) ? rd_part[0] : subline_addr_rcv[1]; 
+        end
+        4: begin
+            // Need two extra bits to address the sub-line
+            assign curr_subline_rcv = (data_rcv_actual_ratio == 4) ? rd_part[1:0] : 
+                                    (data_rcv_actual_ratio == 2) ? {subline_addr_rcv[1], rd_part[0]} :
+                                    subline_addr_rcv[1:0]; 
+        end
+        // If MIG_APP_DATA_WIDTH = 64, need to add another case (RATIO=8) 
+        default: begin
+            // Doesn't need curr_subline
+            // curr_subline is not declared in this case
+        end
+    endcase
 end
 endgenerate
-*/
 
+generate begin
+    case(RATIO)
+        2: begin
+            // Need one extra bit to address the sub-line
+            assign curr_subline_wdf = (wdf_actual_ratio == 2) ? wdf_part[0] : subline_addr_wdf_reg[1]; 
+        end
+        4: begin
+            // Need two extra bits to address the sub-line
+            assign curr_subline_wdf = (wdf_actual_ratio == 4) ? wdf_part[1:0] : 
+                                    (wdf_actual_ratio == 2) ? {subline_addr_wdf_reg[1], wdf_part[0]} :
+                                    subline_addr_wdf_reg[1:0]; 
+        end
+        // If MIG_APP_DATA_WIDTH = 64, need to add another case (RATIO=8) 
+        default: begin
+            // Doesn't need curr_subline
+            // curr_subline is not declared in this case
+        end
+    endcase
+end
+endgenerate
+
+always @ *
+begin
+    if (pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_STORE_REQ || pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_LOAD_REQ)
+    begin
+        case (pkt_data_size_buf[buf_current_in])
+        `MSG_DATA_SIZE_1B:
+        begin
+            mask_word = 8'b1000_0000;
+            mask_word = mask_word >> (subline_offset_addr_in[2:0]);
+        end
+        `MSG_DATA_SIZE_2B:
+        begin
+            mask_word = 8'b1100_0000;
+            mask_word = mask_word >> (2*subline_offset_addr_in[2:1]);
+        end
+        `MSG_DATA_SIZE_4B:
+        begin
+            mask_word = 8'b1111_0000;
+            mask_word = mask_word >> (4*subline_offset_addr_in[2]);
+        end
+        default:
+        begin
+            mask_word = 8'b1111_1111;
+        end
+        endcase
+
+        case (pkt_data_size_buf[buf_current_in])
+        `MSG_DATA_SIZE_64B:
+        begin
+            mask_allwords = 64'hffff_ffff_ffff_ffff;
+        end
+        `MSG_DATA_SIZE_32B:
+        begin
+            mask_allwords = {32'h0, mask_word, mask_word, mask_word, mask_word}; 
+            mask_allwords = mask_allwords << (32*subline_offset_addr_in[5]);
+        end
+        `MSG_DATA_SIZE_16B:
+        begin
+            mask_allwords = {48'h0, mask_word, mask_word}; 
+            mask_allwords = mask_allwords << (16*subline_offset_addr_in[5:4]);
+        end
+        default:
+        begin
+            // 8B, 4B, 2B, 1B
+            mask_allwords = {56'h0, mask_word}; 
+            mask_allwords = mask_allwords << (8*subline_offset_addr_in[5:3]);
+        end
+        endcase
+    end
+    else 
+    begin
+        mask_allwords = 64'hffff_ffff_ffff_ffff;
+    end
+end
+`endif // L2_SEND_NC_REQ
+
+`ifdef L2_SEND_NC_REQ
+assign cmd_send_end       = app_en_reg & (cmd_part == (cmd_actual_ratio - 1)) & app_rdy;
+assign cmd_part_next      = cmd_part == (cmd_actual_ratio - 1) ? 6'b0 : cmd_part + 1;  
+`else
 assign cmd_send_end       = app_en_reg & (cmd_part == (RATIO - 1)) & app_rdy;
 assign cmd_part_next      = cmd_part == (RATIO - 1) ? 6'b0 : cmd_part + 1;  
-assign app_rdy_trans      = (~cmd_pending | cmd_send_end) & ~(app_en_reg & ~cmd_send_end);
-// assign cmd_addr           = {app_addr_out[MIG_APP_ADDR_WIDTH-1:RATIO], {RATIO{1'b0}} + cmd_part;
+`endif // L2_SEND_NC_REQ
 
+assign app_rdy_trans      = (~cmd_pending | cmd_send_end) & ~(app_en_reg & ~cmd_send_end);
 
 // Splitting one command to multiple
 always @(posedge clk) begin
@@ -459,8 +650,14 @@ always @(posedge clk) begin
 end
 
 // Splitting one write request to multiple
+`ifdef L2_SEND_NC_REQ
+assign wdf_send_end     = app_wdf_wren_reg & (wdf_part == (wdf_actual_ratio - 1)) & app_wdf_rdy;
+assign wdf_part_next    = wdf_part == (wdf_actual_ratio - 1) ? 6'b0 : wdf_part + 1;
+`else
 assign wdf_send_end     = app_wdf_wren_reg & (wdf_part == (RATIO - 1)) & app_wdf_rdy;
 assign wdf_part_next    = wdf_part == (RATIO - 1) ? 6'b0 : wdf_part + 1;
+`endif // L2_SEND_NC_REQ
+
 assign app_wdf_rdy_trans    = (~wdf_pending | wdf_send_end) & ~(app_wdf_wren_reg & ~wdf_send_end);
 
 always @(posedge clk) begin
@@ -491,19 +688,38 @@ endgenerate
 // Output signals after splitting
 generate begin
   if (RATIO_WIDTH > 0)
-    assign app_addr_out = {cl_addr_reg, curr_last_bits, 3'b0}; //TODO: check if cl_addr_reg is used properly
+    assign app_addr_out = {cl_addr_reg, curr_subline_cmd, 3'b0}; //TODO: check if cl_addr_reg is used properly
   else
     assign app_addr_out = {cl_addr_reg, 3'b0};
 end
 endgenerate
 
+`ifdef L2_SEND_NC_REQ
+generate begin
+    if (RATIO_WIDTH > 0) begin
+        assign app_wdf_data_out = wdf_data_part[curr_subline_wdf];
+        assign app_wdf_mask_out = wdf_mask_part[curr_subline_wdf];
+    end
+    else begin
+        assign app_wdf_data_out = wdf_data_part[0];
+        assign app_wdf_mask_out = wdf_mask_part[0];
+    end
+end
+endgenerate
+`else
 assign app_wdf_data_out = wdf_data_part[wdf_part];
 assign app_wdf_mask_out = wdf_mask_part[wdf_part];
+`endif
 assign app_wdf_end_out  = app_wdf_wren_reg;   // message has only one packet
 
 // Aggeration of input signals
+`ifdef L2_SEND_NC_REQ
+assign rd_part_next = rd_part == (data_rcv_actual_ratio - 1) ? 6'b0 : rd_part + 1;
+assign rd_last      = (rd_part == (data_rcv_actual_ratio - 1)) & app_rd_data_valid; 
+`else
 assign rd_part_next = rd_part == (RATIO - 1) ? 6'b0 : rd_part + 1;
 assign rd_last      = (rd_part == (RATIO-1)) & app_rd_data_valid; 
+`endif
 
 always @(posedge clk) begin
   if (rst)
@@ -514,15 +730,27 @@ end
 
 generate begin
   genvar ii;
-  for (ii = 0; ii < RATIO; ii = ii + 1) begin: APP_RD
-    always @(posedge clk) begin
-      app_rd_data_part[ii] <= rd_part == ii ? app_rd_data : app_rd_data_part[ii]; 
-    end
+  if (RATIO_WIDTH > 0) begin
+      for (ii = 0; ii < RATIO; ii = ii + 1) begin: APP_RD
 
-    if (ii == (RATIO-1)) // bypass last part
-      assign app_rd_data_trans[(ii+1)*MIG_APP_DATA_WIDTH-1 : ii*MIG_APP_DATA_WIDTH] = app_rd_data;
-    else
-      assign app_rd_data_trans[(ii+1)*MIG_APP_DATA_WIDTH-1 : ii*MIG_APP_DATA_WIDTH] = app_rd_data_part[ii];
+`ifdef L2_SEND_NC_REQ
+        always @(posedge clk) begin
+          app_rd_data_part[ii] <= (curr_subline_rcv == ii && app_rd_data_valid) ? app_rd_data : app_rd_data_part[ii]; 
+        end
+`else
+        always @(posedge clk) begin
+          app_rd_data_part[ii] <= (rd_part == ii && app_rd_data_valid) ? app_rd_data : app_rd_data_part[ii]; 
+        end
+`endif // L2_SEND_NC_REQ
+
+        assign app_rd_data_trans[(ii+1)*MIG_APP_DATA_WIDTH-1 : ii*MIG_APP_DATA_WIDTH] = app_rd_data_part[ii];  // Need to be test without NC_REQ
+      end
+  end
+  else begin
+      always @(posedge clk) begin
+        app_rd_data_part[0] <= (app_rd_data_valid) ? app_rd_data : app_rd_data_part[0]; 
+      end
+      assign app_rd_data_trans[MIG_APP_DATA_WIDTH-1 : 0] = app_rd_data_part[0];  // Need to be test without NC_REQ
   end
 end
 endgenerate
@@ -531,7 +759,11 @@ endgenerate
 
 assign app_wdf_wren  = (pkt_state_buf[buf_current_wdf] == `WAITING_WDF) ? 1'b1 : 1'b0;
 assign app_wdf_data  = pkt_data_buf[buf_current_wdf];
+`ifdef L2_SEND_NC_REQ
+assign app_wdf_mask  = pkt_mask_buf[buf_current_wdf];
+`else
 assign app_wdf_mask  = {APP_MASK_WIDTH{1'b0}};
+`endif
 assign app_wdf_end   = (buf_wdf_data_half == `FIRST);
 assign app_en        = r_app_en;
 
@@ -554,11 +786,19 @@ assign app_addr_virt = pkt_w2[buf_current_cmd][`MSG_ADDR_];
     .storage_addr_out   (storage_addr_out     )
   );
 
-  // make byte address from DDR3_DQ_WIDTH address
-  // get cache line addres from above address
+// make byte address from DDR3_DQ_WIDTH address
+// get cache line addres from above address
   assign cl_addr_uart_boot   = {storage_addr_out, {WORD_SIZE_LOG{1'b0}}} >> 6;
-  assign cl_addr      = uart_boot_en ? cl_addr_uart_boot : 
-                                      pkt_w2[buf_current_cmd][LOC_ADDR_HI: LOC_ADDR_LO];  // Alexey: bug fix. 512 = 64 * 8 = 64 * ( 1 << 3)
+  assign cl_addr = uart_boot_en ? cl_addr_uart_boot : 
+                    pkt_w2[buf_current_cmd][LOC_ADDR_HI: LOC_ADDR_LO];  // Alexey: bug fix. 512 = 64 * 8 = 64 * ( 1 << 3)
+  assign subline_offset_addr_in = pkt_w2[buf_current_in][LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
+  assign subline_offset_addr_out = pkt_w2[buf_current_out+`ADDR_ONE][LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
+
+  assign subline_addr = pkt_w2[buf_current_cmd][LOC_ADDR_LO-1 : `MSG_ADDR_LO_+4];
+  assign subline_addr_wdf = pkt_w2[buf_current_wdf][LOC_ADDR_LO-1 : `MSG_ADDR_LO_+4];
+  assign subline_addr_rcv = (~app_rd_data_end_reg) ? pkt_w2[buf_current_data_rcv][LOC_ADDR_LO-1 : `MSG_ADDR_LO_+4] :
+                                                     pkt_w2[buf_current_data_rcv + 1][LOC_ADDR_LO-1 : `MSG_ADDR_LO_+4]; 
+                                                     // In order to receive data back-to-back (when app_rd_data_end_reg == 1)
 
 assign app_cmd       = (pkt_cmd_buf[buf_current_cmd] == `MSG_TYPE_NC_STORE_REQ ||
                         pkt_cmd_buf[buf_current_cmd] == `MSG_TYPE_STORE_MEM) ? `MIG_WR_CMD : `MIG_RD_CMD;
@@ -567,7 +807,9 @@ always@(posedge clk) begin
   if(rst) begin
     buf_current_wdf <= 0;
     buf_wdf_data_half <= `FIRST;
-    r_app_wdf_wren <= 0;
+`ifdef L2_SEND_NC_REQ
+    wdf_actual_ratio <= 1;
+`endif
   end
   else begin
     if( (pkt_cmd_buf[buf_current_wdf] == `MSG_TYPE_NC_LOAD_REQ || 
@@ -576,8 +818,10 @@ always@(posedge clk) begin
     begin  //no need to write data for read commands
       buf_current_wdf <= buf_current_wdf + 1;
     end
-    r_app_wdf_wren <= (pkt_state_buf[buf_current_wdf] == `WAITING_WDF) ? 1 : 0;
     if(app_wdf_wren_r_r && app_wdf_rdy_trans) begin
+`ifdef L2_SEND_NC_REQ
+      wdf_actual_ratio <= actual_ratio_buf[buf_current_wdf];
+`endif
       buf_current_wdf <= buf_current_wdf + 1;
     end
   end
@@ -591,6 +835,9 @@ always @(posedge clk) begin
   if(rst) begin
     buf_current_cmd <= 0;
     r_app_en <= 0;
+`ifdef L2_SEND_NC_REQ
+    cmd_actual_ratio <= 1;
+`endif
   end
   else begin
     if(pkt_state_buf[buf_current_cmd] == `WAITING_CMD) begin
@@ -599,6 +846,9 @@ always @(posedge clk) begin
 
     if (app_en && app_rdy_trans) begin
       r_app_en <= 0;
+`ifdef L2_SEND_NC_REQ
+      cmd_actual_ratio <= actual_ratio_buf[buf_current_cmd];
+`endif
       buf_current_cmd <= buf_current_cmd+1;
     end
     
@@ -622,13 +872,19 @@ always @(posedge clk) begin
       buf_current_data_rcv <= buf_current_data_rcv+1;
     end
 
-    if(app_rd_data_valid_reg) begin //TODO: must ensure that we can always write to the next read command
-      if (app_rd_data_end_reg) begin
+    if(app_rd_data_end_reg) begin //TODO: must ensure that we can always write to the next read command
         buf_current_data_rcv <= buf_current_data_rcv+1;
-      end
     end
   end
 end
+
+`ifdef L2_SEND_NC_REQ
+always @(*) begin
+    data_rcv_actual_ratio = (~app_rd_data_end_reg) ? actual_ratio_buf[buf_current_data_rcv] :
+                                                     actual_ratio_buf[buf_current_data_rcv + 1];
+                                                     // In order to receive data back-to-back (when app_rd_data_valid == app_rd_data_end_reg == 1)
+end
+`endif
 
 
 //*******************************************************
@@ -637,6 +893,43 @@ end
 assign flit_out = flit_out_buffer[remaining_flt_out-1];
 assign flit_out_val = (pkt_state_buf[buf_current_out] == `READY) & (remaining_flt_out > 0); // Alexey: buf fix
 
+`ifdef L2_SEND_NC_REQ
+
+always @(*) begin
+    out_data_replicated = pkt_data_buf[buf_current_out+`ADDR_ONE]; 
+    case (pkt_data_size_buf[buf_current_out+`ADDR_ONE])
+        `MSG_DATA_SIZE_64B: begin
+            // nothing changed
+        end
+        `MSG_DATA_SIZE_32B: begin
+            out_data_replicated = out_data_replicated >> (256*subline_offset_addr_out[5]); 
+        end
+        `MSG_DATA_SIZE_16B: begin
+            out_data_replicated = out_data_replicated >> (128*subline_offset_addr_out[5:4]); 
+        end
+        default: begin
+            out_data_replicated = out_data_replicated >> (64*subline_offset_addr_out[5:3]); 
+        end
+    endcase
+    case (pkt_data_size_buf[buf_current_out+`ADDR_ONE])
+        `MSG_DATA_SIZE_1B: begin
+            out_data_replicated = out_data_replicated << (8*subline_offset_addr_out[2:0]); 
+            out_data_replicated[63:0] = {8{out_data_replicated[63:56]}};
+        end
+        `MSG_DATA_SIZE_2B: begin
+            out_data_replicated = out_data_replicated << (16*subline_offset_addr_out[2:1]); 
+            out_data_replicated[63:0] = {4{out_data_replicated[63:48]}};
+        end
+        `MSG_DATA_SIZE_4B: begin
+            out_data_replicated = out_data_replicated << (32*subline_offset_addr_out[2]); 
+            out_data_replicated[63:0] = {2{out_data_replicated[63:32]}};
+        end
+        default: begin
+            // nothing changed
+        end
+    endcase
+end
+`endif
 
 always @(posedge clk) begin
   if(rst) begin
@@ -655,9 +948,11 @@ always @(posedge clk) begin
             buf_current_out <= buf_current_out+`ADDR_ONE;
 
             //load response - data is attached
-            if( pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ || 
-                pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_LOAD_MEM
-                ) begin 
+            if(( pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_LOAD_MEM ) 
+`ifndef L2_SEND_NC_REQ
+                | ( pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ )
+`endif
+            )begin 
                 remaining_flt_out <= 9;   // 9 down to 1
 
                 //initialize flit_out header
@@ -669,12 +964,14 @@ always @(posedge clk) begin
                 flit_out_buffer[8][`MSG_LENGTH] <= MAX_PKT_LEN-3;    // Alexey: bug fix: removed nonblocking assignment
 
                 //determine return message type
-                if(pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ) begin
-                  flit_out_buffer[8][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
-                end
                 if(pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_LOAD_MEM) begin
                   flit_out_buffer[8][`MSG_TYPE] <=  `MSG_TYPE_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
                 end // Alexey: bug fix. Bug: write response instead of read
+`ifndef L2_SEND_NC_REQ
+                else if(pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ) begin
+                  flit_out_buffer[8][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                end
+`endif
         
                 // Set reserved bits to 0
                 flit_out_buffer[8][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
@@ -690,6 +987,79 @@ always @(posedge clk) begin
                 flit_out_buffer[6]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
                 flit_out_buffer[7]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
             end
+`ifdef L2_SEND_NC_REQ
+            else if( pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ ) begin 
+                case (pkt_data_size_buf[buf_current_out+`ADDR_ONE])
+                    `MSG_DATA_SIZE_64B: begin
+                        remaining_flt_out <= 9;   // 9 down to 1
+                        
+                        flit_out_buffer[8][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer[8][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
+                        flit_out_buffer[8][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
+                        flit_out_buffer[8][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
+                        flit_out_buffer[8][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
+                        flit_out_buffer[8][`MSG_LENGTH] <= 8;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[8][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[8][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+               
+                        flit_out_buffer[0]  <= out_data_replicated[((8)*`NOC_DATA_WIDTH)-1:(7)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[1]  <= out_data_replicated[((7)*`NOC_DATA_WIDTH)-1:(6)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[2]  <= out_data_replicated[((6)*`NOC_DATA_WIDTH)-1:(5)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[3]  <= out_data_replicated[((5)*`NOC_DATA_WIDTH)-1:(4)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[4]  <= out_data_replicated[((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[5]  <= out_data_replicated[((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[6]  <= out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[7]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                    end
+                    `MSG_DATA_SIZE_32B: begin
+                        remaining_flt_out <= 5;   // 5 down to 1
+                        
+                        flit_out_buffer[4][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer[4][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
+                        flit_out_buffer[4][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
+                        flit_out_buffer[4][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
+                        flit_out_buffer[4][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
+                        flit_out_buffer[4][`MSG_LENGTH] <= 4;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[4][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[4][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+               
+                        flit_out_buffer[0]  <= out_data_replicated[((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[1]  <= out_data_replicated[((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[2]  <= out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[3]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                    end
+                    `MSG_DATA_SIZE_16B: begin
+                        remaining_flt_out <= 3;   // 3 down to 1
+                        
+                        flit_out_buffer[2][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer[2][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
+                        flit_out_buffer[2][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
+                        flit_out_buffer[2][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
+                        flit_out_buffer[2][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
+                        flit_out_buffer[2][`MSG_LENGTH] <= 2;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[2][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[2][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+               
+                        flit_out_buffer[0]  <= out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
+                        flit_out_buffer[1]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                    end
+                    default: begin
+                        remaining_flt_out <= 2;   // 2 down to 1
+                        
+                        flit_out_buffer[1][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer[1][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
+                        flit_out_buffer[1][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
+                        flit_out_buffer[1][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
+                        flit_out_buffer[1][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
+                        flit_out_buffer[1][`MSG_LENGTH] <= 1;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[1][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer[1][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+               
+                        flit_out_buffer[0]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                    end
+                endcase
+            end
+`endif // L2_SEND_NC_REQ
             else begin //store command
                 flit_out_buffer[0][`MSG_LENGTH] <= 0; //no data to return
                 remaining_flt_out <= 1;
