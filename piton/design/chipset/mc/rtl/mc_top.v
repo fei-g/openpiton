@@ -128,7 +128,7 @@ wire                                zero_app_wdf_end;
 wire                                init_calib_complete_zero;
 `endif
 
-wire                                noc_mig_bridge_rst;
+(* max_fanout = 100 *) wire                                noc_mig_bridge_rst;
 wire                                noc_mig_bridge_init_done;
 
 `else // PITONSYS_AXI4_MEM
@@ -358,37 +358,38 @@ assign app_ref_req = 1'b0;
 assign app_sr_req = 1'b0;
 assign app_zq_req = 1'b0;
 
-`ifndef PITONSYS_AXI4_MEM
-`ifdef PITONSYS_MEM_ZEROER
-assign app_en                   = zero_app_en;
-assign app_cmd                  = zero_app_cmd;
-assign app_addr                 = zero_app_addr;
-assign app_wdf_wren             = zero_app_wdf_wren;
-assign app_wdf_data             = zero_app_wdf_data;
-assign app_wdf_mask             = zero_app_wdf_mask;
-assign app_wdf_end              = zero_app_wdf_end;
-assign noc_mig_bridge_rst       = ui_clk_sync_rst & ~init_calib_complete_zero;
-assign noc_mig_bridge_init_done = init_calib_complete_zero;
-assign init_calib_complete_out  = init_calib_complete_zero & ~ui_clk_syn_rst_delayed;
-`else
-assign app_en                   = core_app_en;
-assign app_cmd                  = core_app_cmd;
-assign app_addr                 = core_app_addr;
-assign app_wdf_wren             = core_app_wdf_wren;
-assign app_wdf_data             = core_app_wdf_data;
-assign app_wdf_mask             = core_app_wdf_mask;
-assign app_wdf_end              = core_app_wdf_end;
-assign noc_mig_bridge_rst       = ui_clk_sync_rst;
-assign noc_mig_bridge_init_done = init_calib_complete;
-assign init_calib_complete_out  = init_calib_complete & ~ui_clk_syn_rst_delayed;
-`endif
-assign core_app_rdy             = app_rdy;
-assign core_app_wdf_rdy         = app_wdf_rdy;
-assign core_app_rd_data_valid   = app_rd_data_valid;
-assign core_app_rd_data_end     = app_rd_data_end;
-assign core_app_rd_data         = app_rd_data;
-
-`else //ifndef PITONSYS_AXI4_MEM
+// `ifndef PITONSYS_AXI4_MEM
+// `ifdef PITONSYS_MEM_ZEROER
+// assign app_en                   = zero_app_en;
+// assign app_cmd                  = zero_app_cmd;
+// assign app_addr                 = zero_app_addr;
+// assign app_wdf_wren             = zero_app_wdf_wren;
+// assign app_wdf_data             = zero_app_wdf_data;
+// assign app_wdf_mask             = zero_app_wdf_mask;
+// assign app_wdf_end              = zero_app_wdf_end;
+// assign noc_mig_bridge_rst       = ui_clk_sync_rst & ~init_calib_complete_zero;
+// assign noc_mig_bridge_init_done = init_calib_complete_zero;
+// assign init_calib_complete_out  = init_calib_complete_zero & ~ui_clk_syn_rst_delayed;
+// `else
+// assign app_en                   = core_app_en;
+// assign app_cmd                  = core_app_cmd;
+// assign app_addr                 = core_app_addr;
+// assign app_wdf_wren             = core_app_wdf_wren;
+// assign app_wdf_data             = core_app_wdf_data;
+// assign app_wdf_mask             = core_app_wdf_mask;
+// assign app_wdf_end              = core_app_wdf_end;
+// assign noc_mig_bridge_rst       = ui_clk_sync_rst;
+// assign noc_mig_bridge_init_done = init_calib_complete;
+// assign init_calib_complete_out  = init_calib_complete & ~ui_clk_syn_rst_delayed;
+// `endif
+// assign core_app_rdy             = app_rdy;
+// assign core_app_wdf_rdy         = app_wdf_rdy;
+// assign core_app_rd_data_valid   = app_rd_data_valid;
+// assign core_app_rd_data_end     = app_rd_data_end;
+// assign core_app_rd_data         = app_rd_data;
+// 
+// `else //ifndef PITONSYS_AXI4_MEM
+`ifdef PITONSYS_AXI4_MEM
 assign noc_mig_bridge_rst       = ui_clk_sync_rst;
 assign noc_mig_bridge_init_done = init_calib_complete;
 assign init_calib_complete_out  = init_calib_complete & ~ui_clk_syn_rst_delayed;
@@ -458,6 +459,7 @@ noc_mig_bridge    #  (
 )   noc_mig_bridge   (
     .clk                (ui_clk                     ),  // from MC
     .rst                (noc_mig_bridge_rst         ),  // from MC
+    // .sys_rst            (~sys_rst_n                 ),  // from system
 
     .uart_boot_en       (uart_boot_en               ),
 

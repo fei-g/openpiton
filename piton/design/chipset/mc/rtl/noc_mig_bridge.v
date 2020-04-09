@@ -114,6 +114,13 @@ reg [APP_DATA_WIDTH-1:0]            pkt_data_buf  [IN_FLIGHT_LIMIT-1:0];
 reg [2:0]                           pkt_state_buf [IN_FLIGHT_LIMIT-1:0];
 reg [`MSG_TYPE_WIDTH-1:0]           pkt_cmd_buf   [IN_FLIGHT_LIMIT-1:0];
 reg [`MSG_DATA_SIZE_WIDTH-1:0]      pkt_data_size_buf   [IN_FLIGHT_LIMIT-1:0];
+reg [`NOC_DATA_WIDTH-1:0]           pkt_w1_next_out        ;
+reg [`NOC_DATA_WIDTH-1:0]           pkt_w2_next_out        ;
+reg [`NOC_DATA_WIDTH-1:0]           pkt_w3_next_out        ; 
+reg [APP_DATA_WIDTH-1:0]            pkt_data_buf_next_out  ;
+reg [2:0]                           pkt_state_buf_next_out ;
+reg [`MSG_TYPE_WIDTH-1:0]           pkt_cmd_buf_next_out   ;
+reg [`MSG_DATA_SIZE_WIDTH-1:0]      pkt_data_size_buf_next_out;
 `ifdef L2_SEND_NC_REQ
 reg [APP_MASK_WIDTH-1:0]            pkt_mask_buf   [IN_FLIGHT_LIMIT-1:0];
 `endif
@@ -128,6 +135,7 @@ reg [2:0] data_rcv_actual_ratio;
 reg [`NOC_DATA_WIDTH-1:0]           in_data_buf[MAX_PKT_LEN-4:0]; //buffer for incomming packets
 reg [BUFFER_ADDR_SIZE-1:0]    buf_current_in;  //address of buffer slot being filled
 reg [BUFFER_ADDR_SIZE-1:0]    buf_current_out; //address of buffer slot being sent
+reg [BUFFER_ADDR_SIZE-1:0]    buf_current_out_next; //address of buffer slot being sent
 reg [MAX_PKT_LEN_LOG-1:0]     remaining_flits; //flits remaining in current packet
 reg [2:0]                     acc_state;
 
@@ -138,7 +146,9 @@ reg                           r_app_en;         //command enable
 reg [BUFFER_ADDR_SIZE-1:0]    buf_current_data_rcv;
 
 reg [MAX_PKT_LEN_LOG-1:0]     remaining_flt_out;
-reg [`NOC_DATA_WIDTH-1:0]           flit_out_buffer[MAX_PKT_LEN-1:0];
+reg [MAX_PKT_LEN_LOG-1:0]     remaining_flt_out_next;
+reg [`NOC_DATA_WIDTH-1:0]     flit_out_buffer[MAX_PKT_LEN-1:0];
+reg [`NOC_DATA_WIDTH-1:0]     flit_out_buffer_next[MAX_PKT_LEN-1:0];
 
 reg [BUFFER_ADDR_SIZE-1:0]    buf_current_wdf; //tracks the current data sender to MC
 reg                           buf_wdf_data_half;  //which half of the data we are writing;
@@ -792,7 +802,7 @@ assign app_addr_virt = pkt_w2[buf_current_cmd][`MSG_ADDR_];
   assign cl_addr = uart_boot_en ? cl_addr_uart_boot : 
                     pkt_w2[buf_current_cmd][LOC_ADDR_HI: LOC_ADDR_LO];  // Alexey: bug fix. 512 = 64 * 8 = 64 * ( 1 << 3)
   assign subline_offset_addr_in = pkt_w2[buf_current_in][LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
-  assign subline_offset_addr_out = pkt_w2[buf_current_out+`ADDR_ONE][LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
+  assign subline_offset_addr_out = pkt_w2_next_out[LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
 
   assign subline_addr = pkt_w2[buf_current_cmd][LOC_ADDR_LO-1 : `MSG_ADDR_LO_+4];
   assign subline_addr_wdf = pkt_w2[buf_current_wdf][LOC_ADDR_LO-1 : `MSG_ADDR_LO_+4];
@@ -896,8 +906,8 @@ assign flit_out_val = (pkt_state_buf[buf_current_out] == `READY) & (remaining_fl
 `ifdef L2_SEND_NC_REQ
 
 always @(*) begin
-    out_data_replicated = pkt_data_buf[buf_current_out+`ADDR_ONE]; 
-    case (pkt_data_size_buf[buf_current_out+`ADDR_ONE])
+    out_data_replicated = pkt_data_buf_next_out; 
+    case (pkt_data_size_buf_next_out)
         `MSG_DATA_SIZE_64B: begin
             // nothing changed
         end
@@ -911,7 +921,7 @@ always @(*) begin
             out_data_replicated = out_data_replicated >> (64*subline_offset_addr_out[5:3]); 
         end
     endcase
-    case (pkt_data_size_buf[buf_current_out+`ADDR_ONE])
+    case (pkt_data_size_buf_next_out)
         `MSG_DATA_SIZE_1B: begin
             out_data_replicated = out_data_replicated << (8*subline_offset_addr_out[2:0]); 
             out_data_replicated[63:0] = {8{out_data_replicated[63:56]}};
@@ -940,155 +950,181 @@ always @(posedge clk) begin
     end
   end
   else begin
+      pkt_state_buf_next_out <= pkt_state_buf[buf_current_out+`ADDR_ONE];
+      pkt_cmd_buf_next_out <= pkt_cmd_buf[buf_current_out+`ADDR_ONE];
+      pkt_data_buf_next_out <= pkt_data_buf[buf_current_out+`ADDR_ONE];
+      pkt_data_size_buf_next_out <= pkt_data_size_buf[buf_current_out+`ADDR_ONE];
+      pkt_w3_next_out <= pkt_w3[buf_current_out+`ADDR_ONE];
+      pkt_w2_next_out <= pkt_w2[buf_current_out+`ADDR_ONE];
+      pkt_w1_next_out <= pkt_w1[buf_current_out+`ADDR_ONE];
+
+      buf_current_out <= buf_current_out_next;
+      remaining_flt_out <= remaining_flt_out_next;
+      flit_out_buffer[8] <= flit_out_buffer_next[8];
+      flit_out_buffer[7] <= flit_out_buffer_next[7];
+      flit_out_buffer[6] <= flit_out_buffer_next[6];
+      flit_out_buffer[5] <= flit_out_buffer_next[5];
+      flit_out_buffer[4] <= flit_out_buffer_next[4];
+      flit_out_buffer[3] <= flit_out_buffer_next[3];
+      flit_out_buffer[2] <= flit_out_buffer_next[2];
+      flit_out_buffer[1] <= flit_out_buffer_next[1];
+      flit_out_buffer[0] <= flit_out_buffer_next[0];
+  end
+end
+
+always @(*) begin
+    buf_current_out_next = buf_current_out;
+    remaining_flt_out_next = remaining_flt_out;
+    for(i=0; i < MAX_PKT_LEN; i=i+1) begin
+        flit_out_buffer_next[i] = flit_out_buffer[i];
+    end
+    
     if(pkt_state_buf[buf_current_out] == `READY ||
        pkt_state_buf[buf_current_out] == `INACTIVE ) begin
       if (remaining_flt_out == 0) begin
         //load next buffer entry if it is ready
-        if(pkt_state_buf[buf_current_out+`ADDR_ONE] == `READY ) begin
-            buf_current_out <= buf_current_out+`ADDR_ONE;
+        if(pkt_state_buf_next_out == `READY ) begin
+            buf_current_out_next = buf_current_out+`ADDR_ONE;
 
             //load response - data is attached
-            if(( pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_LOAD_MEM ) 
+            if(( pkt_cmd_buf_next_out == `MSG_TYPE_LOAD_MEM ) 
 `ifndef L2_SEND_NC_REQ
-                | ( pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ )
+                | ( pkt_cmd_buf_next_out == `MSG_TYPE_NC_LOAD_REQ )
 `endif
             )begin 
-                remaining_flt_out <= 9;   // 9 down to 1
+                remaining_flt_out_next = 9;   // 9 down to 1
 
                 //initialize flit_out header
-                flit_out_buffer[8][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
-                flit_out_buffer[8][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
-                flit_out_buffer[8][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
-                flit_out_buffer[8][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
-                flit_out_buffer[8][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
-                flit_out_buffer[8][`MSG_LENGTH] <= MAX_PKT_LEN-3;    // Alexey: bug fix: removed nonblocking assignment
+                flit_out_buffer_next[8][`MSG_DST_CHIPID  ]     = pkt_w3_next_out[`MSG_SRC_CHIPID_ ];
+                flit_out_buffer_next[8][`MSG_DST_X       ]     = pkt_w3_next_out[`MSG_SRC_X_      ];
+                flit_out_buffer_next[8][`MSG_DST_Y       ]     = pkt_w3_next_out[`MSG_SRC_Y_      ];
+                flit_out_buffer_next[8][`MSG_DST_FBITS   ]     = pkt_w3_next_out[`MSG_SRC_FBITS_  ];
+                flit_out_buffer_next[8][`MSG_MSHRID      ]     = pkt_w1_next_out[`MSG_MSHRID      ];
+                flit_out_buffer_next[8][`MSG_LENGTH      ]     = MAX_PKT_LEN-3;
 
                 //determine return message type
-                if(pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_LOAD_MEM) begin
-                  flit_out_buffer[8][`MSG_TYPE] <=  `MSG_TYPE_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
-                end // Alexey: bug fix. Bug: write response instead of read
+                flit_out_buffer_next[8][`MSG_TYPE] =  `MSG_TYPE_LOAD_MEM_ACK;
 `ifndef L2_SEND_NC_REQ
-                else if(pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ) begin
-                  flit_out_buffer[8][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                if(pkt_cmd_buf_next_out == `MSG_TYPE_NC_LOAD_REQ) begin
+                    flit_out_buffer_next[8][`MSG_TYPE] =  `MSG_TYPE_NC_LOAD_MEM_ACK; 
                 end
 `endif
         
                 // Set reserved bits to 0
-                flit_out_buffer[8][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+                flit_out_buffer_next[8][`MSG_OPTIONS_1] = {`MSG_OPTIONS_1_WIDTH{1'b0}};
                 
                 //initialize return data
                 //TODO: this should be done genericly
-                flit_out_buffer[0]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((8)*`NOC_DATA_WIDTH)-1:(7)*`NOC_DATA_WIDTH];
-                flit_out_buffer[1]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((7)*`NOC_DATA_WIDTH)-1:(6)*`NOC_DATA_WIDTH];
-                flit_out_buffer[2]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((6)*`NOC_DATA_WIDTH)-1:(5)*`NOC_DATA_WIDTH];
-                flit_out_buffer[3]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((5)*`NOC_DATA_WIDTH)-1:(4)*`NOC_DATA_WIDTH];
-                flit_out_buffer[4]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
-                flit_out_buffer[5]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
-                flit_out_buffer[6]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
-                flit_out_buffer[7]  <= pkt_data_buf[buf_current_out+`ADDR_ONE][((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[0]  = pkt_data_buf_next_out[((8)*`NOC_DATA_WIDTH)-1:(7)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[1]  = pkt_data_buf_next_out[((7)*`NOC_DATA_WIDTH)-1:(6)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[2]  = pkt_data_buf_next_out[((6)*`NOC_DATA_WIDTH)-1:(5)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[3]  = pkt_data_buf_next_out[((5)*`NOC_DATA_WIDTH)-1:(4)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[4]  = pkt_data_buf_next_out[((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[5]  = pkt_data_buf_next_out[((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[6]  = pkt_data_buf_next_out[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
+                flit_out_buffer_next[7]  = pkt_data_buf_next_out[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
             end
 `ifdef L2_SEND_NC_REQ
-            else if( pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_LOAD_REQ ) begin 
-                case (pkt_data_size_buf[buf_current_out+`ADDR_ONE])
+            else if( pkt_cmd_buf_next_out == `MSG_TYPE_NC_LOAD_REQ ) begin 
+                case (pkt_data_size_buf_next_out)
                     `MSG_DATA_SIZE_64B: begin
-                        remaining_flt_out <= 9;   // 9 down to 1
+                        remaining_flt_out_next = 9;   // 9 down to 1
                         
-                        flit_out_buffer[8][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
-                        flit_out_buffer[8][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
-                        flit_out_buffer[8][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
-                        flit_out_buffer[8][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
-                        flit_out_buffer[8][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
-                        flit_out_buffer[8][`MSG_LENGTH] <= 8;    // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[8][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[8][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+                        flit_out_buffer_next[8][`MSG_DST_CHIPID  ]     = pkt_w3_next_out[`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer_next[8][`MSG_DST_X       ]     = pkt_w3_next_out[`MSG_SRC_X_      ];
+                        flit_out_buffer_next[8][`MSG_DST_Y       ]     = pkt_w3_next_out[`MSG_SRC_Y_      ];
+                        flit_out_buffer_next[8][`MSG_DST_FBITS   ]     = pkt_w3_next_out[`MSG_SRC_FBITS_  ];
+                        flit_out_buffer_next[8][`MSG_MSHRID      ]     = pkt_w1_next_out[`MSG_MSHRID      ];
+                        flit_out_buffer_next[8][`MSG_LENGTH      ]     = 8;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[8][`MSG_TYPE        ]     =  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[8][`MSG_OPTIONS_1   ]     = {`MSG_OPTIONS_1_WIDTH{1'b0}};
                
-                        flit_out_buffer[0]  <= out_data_replicated[((8)*`NOC_DATA_WIDTH)-1:(7)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[1]  <= out_data_replicated[((7)*`NOC_DATA_WIDTH)-1:(6)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[2]  <= out_data_replicated[((6)*`NOC_DATA_WIDTH)-1:(5)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[3]  <= out_data_replicated[((5)*`NOC_DATA_WIDTH)-1:(4)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[4]  <= out_data_replicated[((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[5]  <= out_data_replicated[((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[6]  <= out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[7]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[0]  = out_data_replicated[((8)*`NOC_DATA_WIDTH)-1:(7)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[1]  = out_data_replicated[((7)*`NOC_DATA_WIDTH)-1:(6)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[2]  = out_data_replicated[((6)*`NOC_DATA_WIDTH)-1:(5)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[3]  = out_data_replicated[((5)*`NOC_DATA_WIDTH)-1:(4)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[4]  = out_data_replicated[((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[5]  = out_data_replicated[((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[6]  = out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[7]  = out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
                     end
                     `MSG_DATA_SIZE_32B: begin
-                        remaining_flt_out <= 5;   // 5 down to 1
+                        remaining_flt_out_next = 5;   // 5 down to 1
                         
-                        flit_out_buffer[4][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
-                        flit_out_buffer[4][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
-                        flit_out_buffer[4][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
-                        flit_out_buffer[4][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
-                        flit_out_buffer[4][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
-                        flit_out_buffer[4][`MSG_LENGTH] <= 4;    // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[4][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[4][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+                        flit_out_buffer_next[4][`MSG_DST_CHIPID  ]     = pkt_w3_next_out[`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer_next[4][`MSG_DST_X       ]     = pkt_w3_next_out[`MSG_SRC_X_      ];
+                        flit_out_buffer_next[4][`MSG_DST_Y       ]     = pkt_w3_next_out[`MSG_SRC_Y_      ];
+                        flit_out_buffer_next[4][`MSG_DST_FBITS   ]     = pkt_w3_next_out[`MSG_SRC_FBITS_  ];
+                        flit_out_buffer_next[4][`MSG_MSHRID      ]     = pkt_w1_next_out[`MSG_MSHRID      ];
+                        flit_out_buffer_next[4][`MSG_LENGTH      ]     = 4;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[4][`MSG_TYPE        ]     =  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[4][`MSG_OPTIONS_1   ]     = {`MSG_OPTIONS_1_WIDTH{1'b0}};
                
-                        flit_out_buffer[0]  <= out_data_replicated[((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[1]  <= out_data_replicated[((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[2]  <= out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[3]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[0]  = out_data_replicated[((4)*`NOC_DATA_WIDTH)-1:(3)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[1]  = out_data_replicated[((3)*`NOC_DATA_WIDTH)-1:(2)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[2]  = out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[3]  = out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
                     end
                     `MSG_DATA_SIZE_16B: begin
-                        remaining_flt_out <= 3;   // 3 down to 1
+                        remaining_flt_out_next = 3;   // 3 down to 1
                         
-                        flit_out_buffer[2][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
-                        flit_out_buffer[2][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
-                        flit_out_buffer[2][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
-                        flit_out_buffer[2][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
-                        flit_out_buffer[2][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
-                        flit_out_buffer[2][`MSG_LENGTH] <= 2;    // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[2][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[2][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+                        flit_out_buffer_next[2][`MSG_DST_CHIPID  ]     = pkt_w3_next_out[`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer_next[2][`MSG_DST_X       ]     = pkt_w3_next_out[`MSG_SRC_X_      ];
+                        flit_out_buffer_next[2][`MSG_DST_Y       ]     = pkt_w3_next_out[`MSG_SRC_Y_      ];
+                        flit_out_buffer_next[2][`MSG_DST_FBITS   ]     = pkt_w3_next_out[`MSG_SRC_FBITS_  ];
+                        flit_out_buffer_next[2][`MSG_MSHRID      ]     = pkt_w1_next_out[`MSG_MSHRID      ];
+                        flit_out_buffer_next[2][`MSG_LENGTH      ]     = 2;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[2][`MSG_TYPE        ]     =  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[2][`MSG_OPTIONS_1   ]     = {`MSG_OPTIONS_1_WIDTH{1'b0}};
                
-                        flit_out_buffer[0]  <= out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
-                        flit_out_buffer[1]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[0]  = out_data_replicated[((2)*`NOC_DATA_WIDTH)-1:(1)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[1]  = out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
                     end
                     default: begin
-                        remaining_flt_out <= 2;   // 2 down to 1
+                        remaining_flt_out_next = 2;   // 2 down to 1
                         
-                        flit_out_buffer[1][`MSG_DST_CHIPID  ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
-                        flit_out_buffer[1][`MSG_DST_X       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
-                        flit_out_buffer[1][`MSG_DST_Y       ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
-                        flit_out_buffer[1][`MSG_DST_FBITS   ]     <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
-                        flit_out_buffer[1][`MSG_MSHRID      ]     <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
-                        flit_out_buffer[1][`MSG_LENGTH] <= 1;    // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[1][`MSG_TYPE] <=  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
-                        flit_out_buffer[1][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+                        flit_out_buffer_next[1][`MSG_DST_CHIPID  ]     = pkt_w3_next_out[`MSG_SRC_CHIPID_ ];
+                        flit_out_buffer_next[1][`MSG_DST_X       ]     = pkt_w3_next_out[`MSG_SRC_X_      ];
+                        flit_out_buffer_next[1][`MSG_DST_Y       ]     = pkt_w3_next_out[`MSG_SRC_Y_      ];
+                        flit_out_buffer_next[1][`MSG_DST_FBITS   ]     = pkt_w3_next_out[`MSG_SRC_FBITS_  ];
+                        flit_out_buffer_next[1][`MSG_MSHRID      ]     = pkt_w1_next_out[`MSG_MSHRID      ];
+                        flit_out_buffer_next[1][`MSG_LENGTH      ]     = 1;    // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[1][`MSG_TYPE        ]     =  `MSG_TYPE_NC_LOAD_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                        flit_out_buffer_next[1][`MSG_OPTIONS_1   ]     = {`MSG_OPTIONS_1_WIDTH{1'b0}};
                
-                        flit_out_buffer[0]  <= out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
+                        flit_out_buffer_next[0]  = out_data_replicated[((1)*`NOC_DATA_WIDTH)-1:(0)*`NOC_DATA_WIDTH];
                     end
                 endcase
             end
 `endif // L2_SEND_NC_REQ
             else begin //store command
-                flit_out_buffer[0][`MSG_LENGTH] <= 0; //no data to return
-                remaining_flt_out <= 1;
+                remaining_flt_out_next = 1;
 
-                flit_out_buffer[0][`MSG_DST_CHIPID  ] <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_CHIPID_ ];
-                flit_out_buffer[0][`MSG_DST_X       ] <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_X_      ];
-                flit_out_buffer[0][`MSG_DST_Y       ] <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_Y_      ];
-                flit_out_buffer[0][`MSG_DST_FBITS   ] <= pkt_w3[buf_current_out+`ADDR_ONE][`MSG_SRC_FBITS_  ];
-                flit_out_buffer[0][`MSG_MSHRID      ] <= pkt_w1[buf_current_out+`ADDR_ONE][`MSG_MSHRID      ];
+                flit_out_buffer_next[0][`MSG_LENGTH      ] = 0; //no data to return
+                flit_out_buffer_next[0][`MSG_DST_CHIPID  ] = pkt_w3_next_out[`MSG_SRC_CHIPID_ ];
+                flit_out_buffer_next[0][`MSG_DST_X       ] = pkt_w3_next_out[`MSG_SRC_X_      ];
+                flit_out_buffer_next[0][`MSG_DST_Y       ] = pkt_w3_next_out[`MSG_SRC_Y_      ];
+                flit_out_buffer_next[0][`MSG_DST_FBITS   ] = pkt_w3_next_out[`MSG_SRC_FBITS_  ];
+                flit_out_buffer_next[0][`MSG_MSHRID      ] = pkt_w1_next_out[`MSG_MSHRID      ];
 
-                if(pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_NC_STORE_REQ) begin
-                  flit_out_buffer[0][`MSG_TYPE] <=  `MSG_TYPE_NC_STORE_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                if(pkt_cmd_buf_next_out == `MSG_TYPE_NC_STORE_REQ) begin
+                  flit_out_buffer_next[0][`MSG_TYPE] =  `MSG_TYPE_NC_STORE_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
                 end
-                if(pkt_cmd_buf[buf_current_out+`ADDR_ONE] == `MSG_TYPE_STORE_MEM) begin
-                  flit_out_buffer[0][`MSG_TYPE] <=  `MSG_TYPE_STORE_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
+                if(pkt_cmd_buf_next_out == `MSG_TYPE_STORE_MEM) begin
+                  flit_out_buffer_next[0][`MSG_TYPE] =  `MSG_TYPE_STORE_MEM_ACK; // Alexey: bug fix: removed nonblocking assignment
                 end
 
                 // Set reserved bits to 0
-                flit_out_buffer[0][`MSG_OPTIONS_1] <= {`MSG_OPTIONS_1_WIDTH{1'b0}};
+                flit_out_buffer_next[0][`MSG_OPTIONS_1] = {`MSG_OPTIONS_1_WIDTH{1'b0}};
             end
          end
       end
       else begin
         if(flit_out_rdy && flit_out_val) begin
-          remaining_flt_out <= remaining_flt_out-1;
+          remaining_flt_out_next = remaining_flt_out-1;
         end
       end
     end
-  end
 end
 
 function integer clogb2;
