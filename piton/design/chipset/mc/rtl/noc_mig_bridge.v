@@ -202,13 +202,16 @@ reg   [MIG_APP_DATA_WIDTH-1:0]  app_rd_data_part [RATIO-1:0];
 wire  [APP_DATA_WIDTH-1:0]      app_rd_data_trans;
 
 `ifdef L2_SEND_NC_REQ
-reg [7:0]                   mask_word;
-reg [APP_MASK_WIDTH-1:0]    mask_allwords;
+reg                         current_in_nc_req;
+reg [`MSG_DATA_SIZE_WIDTH-1 : 0] current_in_data_size;
+reg [7:0]                   mask_buf_current_in_word_next;
+reg [7:0]                   mask_buf_current_in_word;
+reg [APP_MASK_WIDTH-1:0]    mask_buf_current_in_allwords_next;
 reg [APP_DATA_WIDTH-1:0]    out_data_replicated;
 `endif
 reg [APP_DATA_WIDTH-1:0]    in_data_replicated;
 
-wire [5:0] subline_offset_addr_in;
+reg [5:0] subline_offset_addr_in;
 wire [5:0] subline_offset_addr_out;
 wire [1:0] subline_addr;
 wire [1:0] subline_addr_wdf;
@@ -272,6 +275,10 @@ always @(posedge clk) begin
     buf_current_in <= 0;
     remaining_flits <= 0;
     acc_state = `ACCEPT_W1;
+`ifdef L2_SEND_NC_REQ 
+    current_in_nc_req <= 0;
+    current_in_data_size <= `MSG_DATA_SIZE_WIDTH'd0;
+`endif
     //initialize all buffers to zero
     for(i=0; i < IN_FLIGHT_LIMIT; i=i+1) begin
       pkt_w1        [i] <= 0;
@@ -293,7 +300,10 @@ always @(posedge clk) begin
       `ACCEPT_W1: begin 
         // pkt_state_buf [buf_current_in] <= `FILLING;
         pkt_w1        [buf_current_in] <= flit_in;
-        pkt_cmd_buf   [buf_current_in] <= flit_in[`MSG_TYPE];
+        pkt_cmd_buf   [buf_current_in] <= flit_in[`MSG_TYPE];  
+`ifdef L2_SEND_NC_REQ
+        current_in_nc_req <= (flit_in[`MSG_TYPE] == `MSG_TYPE_NC_STORE_REQ || flit_in[`MSG_TYPE] == `MSG_TYPE_NC_LOAD_REQ) ? 1'b1 : 1'b0;
+`endif        
         remaining_flits <= flit_in[`MSG_LENGTH]-1;    // Alexey: when 0 flit is accepted
         acc_state       <= `ACCEPT_W2;
       end
@@ -302,6 +312,11 @@ always @(posedge clk) begin
       `ACCEPT_W2: begin
         pkt_w2        [buf_current_in] <= flit_in;  
         pkt_data_size_buf   [buf_current_in] <= flit_in[`MSG_DATA_SIZE_];
+`ifdef L2_SEND_NC_REQ
+        current_in_data_size <= flit_in[`MSG_DATA_SIZE_];
+        subline_offset_addr_in <= flit_in[LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
+        mask_buf_current_in_word <= mask_buf_current_in_word_next;
+`endif
         remaining_flits <= remaining_flits-1;
         acc_state <= `ACCEPT_W3;
       end
@@ -309,7 +324,7 @@ always @(posedge clk) begin
       `ACCEPT_W3: begin
         pkt_w3        [buf_current_in] <= flit_in; 
 `ifdef L2_SEND_NC_REQ
-        pkt_mask_buf [buf_current_in] <= ~mask_allwords;
+        pkt_mask_buf [buf_current_in] <= ~mask_buf_current_in_allwords_next;
 `endif
         if(remaining_flits == 0) begin //read command
             //check if we can start accepting the next command
@@ -362,8 +377,8 @@ end
 
 always @(*) begin
 `ifdef L2_SEND_NC_REQ
-    if (pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_STORE_REQ || pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_LOAD_REQ) begin
-        case (pkt_data_size_buf[buf_current_in])
+    if ( current_in_nc_req ) begin
+        case ( current_in_data_size )
         `MSG_DATA_SIZE_64B: begin
             in_data_replicated = {flit_in,in_data_buf[1],in_data_buf[2],in_data_buf[3],in_data_buf[4],in_data_buf[5],in_data_buf[6],in_data_buf[7]};
         end
@@ -579,56 +594,58 @@ endgenerate
 
 always @ *
 begin
-    if (pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_STORE_REQ || pkt_cmd_buf[buf_current_in] == `MSG_TYPE_NC_LOAD_REQ)
+    if ( current_in_nc_req ) 
     begin
-        case (pkt_data_size_buf[buf_current_in])
+        // Calculate in the ACCEPT_W2 state
+        case (flit_in[`MSG_DATA_SIZE_])
         `MSG_DATA_SIZE_1B:
         begin
-            mask_word = 8'b1000_0000;
-            mask_word = mask_word >> (subline_offset_addr_in[2:0]);
+            mask_buf_current_in_word_next = 8'b1000_0000;
+            mask_buf_current_in_word_next = mask_buf_current_in_word_next >> (flit_in[`MSG_ADDR_LO_ + 2 : `MSG_ADDR_LO_]);
         end
         `MSG_DATA_SIZE_2B:
         begin
-            mask_word = 8'b1100_0000;
-            mask_word = mask_word >> (2*subline_offset_addr_in[2:1]);
+            mask_buf_current_in_word_next = 8'b1100_0000;
+            mask_buf_current_in_word_next = mask_buf_current_in_word_next >> (2*flit_in[`MSG_ADDR_LO_ + 2 : `MSG_ADDR_LO_ + 1]);
         end
         `MSG_DATA_SIZE_4B:
         begin
-            mask_word = 8'b1111_0000;
-            mask_word = mask_word >> (4*subline_offset_addr_in[2]);
+            mask_buf_current_in_word_next = 8'b1111_0000;
+            mask_buf_current_in_word_next = mask_buf_current_in_word_next >> (4*flit_in[`MSG_ADDR_LO_ + 2]);
         end
         default:
         begin
-            mask_word = 8'b1111_1111;
+            mask_buf_current_in_word_next = 8'b1111_1111;
         end
         endcase
 
-        case (pkt_data_size_buf[buf_current_in])
+        // Calculate in the ACCEPT_W3 state
+        case (current_in_data_size)
         `MSG_DATA_SIZE_64B:
         begin
-            mask_allwords = 64'hffff_ffff_ffff_ffff;
+            mask_buf_current_in_allwords_next = 64'hffff_ffff_ffff_ffff;
         end
         `MSG_DATA_SIZE_32B:
         begin
-            mask_allwords = {32'h0, mask_word, mask_word, mask_word, mask_word}; 
-            mask_allwords = mask_allwords << (32*subline_offset_addr_in[5]);
+            mask_buf_current_in_allwords_next = {32'h0, mask_buf_current_in_word, mask_buf_current_in_word, mask_buf_current_in_word, mask_buf_current_in_word}; 
+            mask_buf_current_in_allwords_next = mask_buf_current_in_allwords_next << (32*subline_offset_addr_in[5]);
         end
         `MSG_DATA_SIZE_16B:
         begin
-            mask_allwords = {48'h0, mask_word, mask_word}; 
-            mask_allwords = mask_allwords << (16*subline_offset_addr_in[5:4]);
+            mask_buf_current_in_allwords_next = {48'h0, mask_buf_current_in_word, mask_buf_current_in_word}; 
+            mask_buf_current_in_allwords_next = mask_buf_current_in_allwords_next << (16*subline_offset_addr_in[5:4]);
         end
         default:
         begin
             // 8B, 4B, 2B, 1B
-            mask_allwords = {56'h0, mask_word}; 
-            mask_allwords = mask_allwords << (8*subline_offset_addr_in[5:3]);
+            mask_buf_current_in_allwords_next = {56'h0, mask_buf_current_in_word}; 
+            mask_buf_current_in_allwords_next = mask_buf_current_in_allwords_next << (8*subline_offset_addr_in[5:3]);
         end
         endcase
     end
     else 
     begin
-        mask_allwords = 64'hffff_ffff_ffff_ffff;
+        mask_buf_current_in_allwords_next = 64'hffff_ffff_ffff_ffff;
     end
 end
 `endif // L2_SEND_NC_REQ
@@ -801,7 +818,7 @@ assign app_addr_virt = pkt_w2[buf_current_cmd][`MSG_ADDR_];
   assign cl_addr_uart_boot   = {storage_addr_out, {WORD_SIZE_LOG{1'b0}}} >> 6;
   assign cl_addr = uart_boot_en ? cl_addr_uart_boot : 
                     pkt_w2[buf_current_cmd][LOC_ADDR_HI: LOC_ADDR_LO];  // Alexey: bug fix. 512 = 64 * 8 = 64 * ( 1 << 3)
-  assign subline_offset_addr_in = pkt_w2[buf_current_in][LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
+  //assign subline_offset_addr_in = pkt_w2[buf_current_in][LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
   assign subline_offset_addr_out = pkt_w2_next_out[LOC_ADDR_LO-1 : `MSG_ADDR_LO_];
 
   assign subline_addr = pkt_w2[buf_current_cmd][LOC_ADDR_LO-1 : `MSG_ADDR_LO_+4];
